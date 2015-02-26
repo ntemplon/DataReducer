@@ -16,6 +16,9 @@ public class DataReducer {
      */
     public static void main(String[] args) {
         
+//        DataReductionForm form = new DataReductionForm();
+//        form.setVisible(true);
+        
     }
     
 }

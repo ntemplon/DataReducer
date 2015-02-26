@@ -5,6 +5,8 @@
  */
 package com.nfa.drs;
 
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author Nathan Templon
@@ -16,8 +18,8 @@ public class DataReducer {
      */
     public static void main(String[] args) {
         
-//        DataReductionForm form = new DataReductionForm();
-//        form.setVisible(true);
+        DataReductionFrame form = new DataReductionFrame();
+        form.setVisible(true);
         
     }
     

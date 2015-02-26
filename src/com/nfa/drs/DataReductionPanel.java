@@ -5,19 +5,39 @@
  */
 package com.nfa.drs;
 
+import com.nfa.drs.data.DataFormat;
+import com.nfa.drs.data.StudentWindTunnelFormat;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  * @author Nathan Templon
  */
 public class DataReductionPanel extends javax.swing.JPanel {
+    
+    // Static Fields
+    private static final Map<String, DataFormat> formats = new HashMap<>();
+    static {
+        DataFormat wsu3by4 = new StudentWindTunnelFormat();
+        formats.put(wsu3by4.getName(), wsu3by4);
+    }
+    
 
     /**
      * Creates new form DataReductionPanel
      */
     public DataReductionPanel() {
         initComponents();
+        
+        this.formatCombo.removeAllItems();
+        formats.keySet().stream()
+                .forEach((String name) -> this.formatCombo.addItem(name));
     }
-
+    
+    // Private Methods
     /**
      * This method is called from within the constructor to
      * initialize the form.
@@ -27,11 +47,18 @@ public class DataReductionPanel extends javax.swing.JPanel {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         jPanel1 = new javax.swing.JPanel();
-        titleLabel = new javax.swing.JLabel();
         tabbedPane = new javax.swing.JTabbedPane();
         configPanel = new javax.swing.JPanel();
+        inputFormatLabel = new javax.swing.JLabel();
+        formatCombo = new javax.swing.JComboBox();
+        botGlue = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
+        modelConstantsLabel = new javax.swing.JLabel();
+        importPanel = new javax.swing.JPanel();
+        thermalPanel = new javax.swing.JPanel();
+        reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -49,23 +76,83 @@ public class DataReductionPanel extends javax.swing.JPanel {
         setPreferredSize(new java.awt.Dimension(900, 600));
         setLayout(new java.awt.BorderLayout());
 
-        titleLabel.setText("NFA 3x4 Data Reduction Software");
-        titleLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 5, 0));
-        add(titleLabel, java.awt.BorderLayout.PAGE_START);
-        titleLabel.getAccessibleContext().setAccessibleDescription("");
+        configPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        configPanel.setLayout(new java.awt.GridBagLayout());
 
-        javax.swing.GroupLayout configPanelLayout = new javax.swing.GroupLayout(configPanel);
-        configPanel.setLayout(configPanelLayout);
-        configPanelLayout.setHorizontalGroup(
-            configPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        inputFormatLabel.setText("Data Input Format");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        configPanel.add(inputFormatLabel, gridBagConstraints);
+
+        formatCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        formatCombo.setPreferredSize(new java.awt.Dimension(275, 24));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
+        configPanel.add(formatCombo, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 50;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        configPanel.add(botGlue, gridBagConstraints);
+
+        modelConstantsLabel.setText("Model Constants");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
+        configPanel.add(modelConstantsLabel, gridBagConstraints);
+
+        tabbedPane.addTab("Settings", configPanel);
+
+        javax.swing.GroupLayout importPanelLayout = new javax.swing.GroupLayout(importPanel);
+        importPanel.setLayout(importPanelLayout);
+        importPanelLayout.setHorizontalGroup(
+            importPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 885, Short.MAX_VALUE)
         );
-        configPanelLayout.setVerticalGroup(
-            configPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 543, Short.MAX_VALUE)
+        importPanelLayout.setVerticalGroup(
+            importPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 563, Short.MAX_VALUE)
         );
 
-        tabbedPane.addTab("Configuration", configPanel);
+        tabbedPane.addTab("Import", importPanel);
+
+        javax.swing.GroupLayout thermalPanelLayout = new javax.swing.GroupLayout(thermalPanel);
+        thermalPanel.setLayout(thermalPanelLayout);
+        thermalPanelLayout.setHorizontalGroup(
+            thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 885, Short.MAX_VALUE)
+        );
+        thermalPanelLayout.setVerticalGroup(
+            thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 563, Short.MAX_VALUE)
+        );
+
+        tabbedPane.addTab("Thermal", thermalPanel);
+
+        javax.swing.GroupLayout reductionPanelLayout = new javax.swing.GroupLayout(reductionPanel);
+        reductionPanel.setLayout(reductionPanelLayout);
+        reductionPanelLayout.setHorizontalGroup(
+            reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 885, Short.MAX_VALUE)
+        );
+        reductionPanelLayout.setVerticalGroup(
+            reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 563, Short.MAX_VALUE)
+        );
+
+        tabbedPane.addTab("Reduction", reductionPanel);
 
         javax.swing.GroupLayout dataTabLayout = new javax.swing.GroupLayout(dataTab);
         dataTab.setLayout(dataTabLayout);
@@ -85,10 +172,16 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.Box.Filler botGlue;
     private javax.swing.JPanel configPanel;
     private javax.swing.JPanel dataTab;
+    private javax.swing.JComboBox formatCombo;
+    private javax.swing.JPanel importPanel;
+    private javax.swing.JLabel inputFormatLabel;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JLabel modelConstantsLabel;
+    private javax.swing.JPanel reductionPanel;
     private javax.swing.JTabbedPane tabbedPane;
-    private javax.swing.JLabel titleLabel;
+    private javax.swing.JPanel thermalPanel;
     // End of variables declaration//GEN-END:variables
 }

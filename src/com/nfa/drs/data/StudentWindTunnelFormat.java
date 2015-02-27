@@ -11,8 +11,10 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -113,29 +115,31 @@ public class StudentWindTunnelFormat implements DataFormat {
     public Datapoint fromLine(String line) {
         String[] parts = line.split(DELIMITER);
 
-        DataSet data = new DataSet();
+        Map<DataValues, Double> data = new HashMap<>();
         if (parts.length > AOA_INDEX) {
-            data.set(DataValues.AngleOfAttack, this.safeParse(parts[AOA_INDEX]));
+            data.put(DataValues.AngleOfAttack, this.safeParse(parts[AOA_INDEX]));
         }
         if (parts.length > LIFT_INDEX) {
-            data.set(DataValues.Lift, this.safeParse(parts[LIFT_INDEX]));
+            data.put(DataValues.Lift, this.safeParse(parts[LIFT_INDEX]));
         }
         if (parts.length > DRAG_INDEX) {
-            data.set(DataValues.Drag, this.safeParse(parts[DRAG_INDEX]));
+            data.put(DataValues.Drag, this.safeParse(parts[DRAG_INDEX]));
         }
         if (parts.length > PM_INDEX) {
-            data.set(DataValues.PitchMoment, this.safeParse(parts[PM_INDEX]));
+            data.put(DataValues.PitchMoment, this.safeParse(parts[PM_INDEX]));
         }
         if (parts.length > Q_INDEX) {
-            data.set(DataValues.DynamicPressure, this.safeParse(parts[Q_INDEX]));
+            data.put(DataValues.DynamicPressure, this.safeParse(parts[Q_INDEX]));
         }
+        
+        DataSet ds = new DataSet(data);
 
         String comment = "";
         if (parts.length > COMMENT_INDEX) {
             comment = parts[COMMENT_INDEX];
         }
 
-        return new Datapoint(data, comment);
+        return new Datapoint(ds, comment);
     }
 
 

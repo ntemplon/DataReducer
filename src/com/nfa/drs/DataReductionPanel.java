@@ -58,6 +58,8 @@ public class DataReductionPanel extends javax.swing.JPanel {
         modelConstantsLabel = new javax.swing.JLabel();
         modelConstantsPanel1 = new com.nfa.drs.constants.ModelConstantsPanel();
         importPanel = new javax.swing.JPanel();
+        dataScrollPane = new javax.swing.JScrollPane();
+        dataContainerViewer = new com.nfa.drs.data.DataContainerViewer();
         thermalPanel = new javax.swing.JPanel();
         reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
@@ -74,13 +76,13 @@ public class DataReductionPanel extends javax.swing.JPanel {
         );
 
         setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        setPreferredSize(new java.awt.Dimension(900, 600));
+        setPreferredSize(new java.awt.Dimension(950, 600));
         setLayout(new java.awt.BorderLayout());
 
         configPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         configPanel.setLayout(new java.awt.GridBagLayout());
 
-        inputFormatLabel.setText("Data Input Format");
+        inputFormatLabel.setText("Data Format");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
@@ -121,44 +123,52 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
         tabbedPane.addTab("Settings", configPanel);
 
-        javax.swing.GroupLayout importPanelLayout = new javax.swing.GroupLayout(importPanel);
-        importPanel.setLayout(importPanelLayout);
-        importPanelLayout.setHorizontalGroup(
-            importPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 885, Short.MAX_VALUE)
-        );
-        importPanelLayout.setVerticalGroup(
-            importPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 563, Short.MAX_VALUE)
-        );
+        importPanel.setLayout(new java.awt.GridBagLayout());
 
-        tabbedPane.addTab("Import", importPanel);
+        dataScrollPane.setPreferredSize(new java.awt.Dimension(650, 300));
+
+        dataContainerViewer.setPreferredScrollableViewportSize(new java.awt.Dimension(0, 0));
+        dataContainerViewer.setPreferredSize(new java.awt.Dimension(0, 0));
+        dataScrollPane.setViewportView(dataContainerViewer);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        importPanel.add(dataScrollPane, gridBagConstraints);
+
+        tabbedPane.addTab("Raw Data", importPanel);
 
         javax.swing.GroupLayout thermalPanelLayout = new javax.swing.GroupLayout(thermalPanel);
         thermalPanel.setLayout(thermalPanelLayout);
         thermalPanelLayout.setHorizontalGroup(
             thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 885, Short.MAX_VALUE)
+            .addGap(0, 935, Short.MAX_VALUE)
         );
         thermalPanelLayout.setVerticalGroup(
             thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 563, Short.MAX_VALUE)
         );
 
-        tabbedPane.addTab("Thermal", thermalPanel);
+        tabbedPane.addTab("Thermal Bias", thermalPanel);
 
         javax.swing.GroupLayout reductionPanelLayout = new javax.swing.GroupLayout(reductionPanel);
         reductionPanel.setLayout(reductionPanelLayout);
         reductionPanelLayout.setHorizontalGroup(
             reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 885, Short.MAX_VALUE)
+            .addGap(0, 935, Short.MAX_VALUE)
         );
         reductionPanelLayout.setVerticalGroup(
             reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 563, Short.MAX_VALUE)
         );
 
-        tabbedPane.addTab("Reduction", reductionPanel);
+        tabbedPane.addTab("Flow Corrections", reductionPanel);
 
         javax.swing.GroupLayout dataTabLayout = new javax.swing.GroupLayout(dataTab);
         dataTab.setLayout(dataTabLayout);
@@ -171,7 +181,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
             .addGap(0, 0, Short.MAX_VALUE)
         );
 
-        tabbedPane.addTab("Data", dataTab);
+        tabbedPane.addTab("Reduced Data", dataTab);
 
         add(tabbedPane, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -180,6 +190,8 @@ public class DataReductionPanel extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.Box.Filler botGlue;
     private javax.swing.JPanel configPanel;
+    private com.nfa.drs.data.DataContainerViewer dataContainerViewer;
+    private javax.swing.JScrollPane dataScrollPane;
     private javax.swing.JPanel dataTab;
     private javax.swing.JComboBox formatCombo;
     private javax.swing.JPanel importPanel;

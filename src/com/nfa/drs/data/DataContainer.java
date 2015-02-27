@@ -9,7 +9,6 @@ package com.nfa.drs.data;
  *
  * @author Nathan Templon
  */
-@FunctionalInterface
 public interface DataContainer {
     DataSet getData();
 }

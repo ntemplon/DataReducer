@@ -7,15 +7,17 @@ package com.nfa.drs.constants;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  *
  * @author Nathan Templon
  */
 public class ModelConstants {
-    
+
     // Enumerations
     public enum Constants {
+
         WingArea("Wing Area (sq ft)", "The reference area for coefficients."),
         FrontalArea("Frontal Area (sq ft)", "The frontal area of the vehicle seen by the flow."),
         Chord("Wing Chord (ft)", "The reference length for coefficients."),
@@ -28,31 +30,31 @@ public class ModelConstants {
         Xmrc("Xmrc (ft)", "The distance from the balance resolution center to the aircraft cg along the x axis (positive upstream)."),
         Ymrc("Ymrc (ft)", "The distance from the balance resolution center to the aircraft cg along the y axis (positive down)."),
         Lambda2("\u03BB2 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (3rd ed) figure 9.16."),
-        Lambda3("\u03BB3 SShape Factor", "A shape factor.  See Rae, Pope, and Barlow (2nd ed) figure 6.12."),
+        Lambda3("\u03BB3 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (2nd ed) figure 6.12."),
         k("k Constant", "A factor from Rae, Pope, and Barlow.");
-        
+
         private final String displayName;
         private final String description;
-        
+
         public final String getDisplayName() {
             return this.displayName;
         }
-        
+
         public final String getDescription() {
             return this.description;
         }
-        
+
         Constants(String displayName, String description) {
             this.displayName = displayName;
             this.description = description;
         }
     }
-    
-    
+
+
     // Fields
     private final Map<Constants, Double> constants = new HashMap<>();
-    
-    
+
+
     // Properties
     public Double getConstant(Constants constant) {
         Double val = this.constants.get(constant);
@@ -61,9 +63,43 @@ public class ModelConstants {
         }
         return 0.0;
     }
-    
+
     public void setConstant(Constants constant, Double value) {
         this.constants.put(constant, value);
     }
-    
+
+
+    // Public Methods
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+
+        if (o instanceof ModelConstants) {
+            ModelConstants other = (ModelConstants) o;
+            for (Constants constant : Constants.values()) {
+                Double myVal = this.getConstant(constant);
+                Double otherVal = other.getConstant(constant);
+                if (myVal == null && otherVal == null) {
+
+                }
+                else if (myVal != null) {
+                    if (!myVal.equals(otherVal)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 19 * hash + Objects.hashCode(this.constants);
+        return hash;
+    }
+
 }

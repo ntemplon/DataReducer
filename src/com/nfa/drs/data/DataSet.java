@@ -5,8 +5,8 @@
  */
 package com.nfa.drs.data;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -36,7 +36,7 @@ public class DataSet {
 
 
     // Fields
-    private final Map<DataValues, Double> data = new HashMap<>();
+    private final Map<DataValues, Double> data;
     
     
     // Public Methods
@@ -47,15 +47,15 @@ public class DataSet {
         }
         return 0.0;
     }
-    
-    public final void set(DataValues item, double value) {
-        this.data.put(item, value);
-    }
 
 
     // Initialization
-    public DataSet() {
-
+    public DataSet(Map<DataValues, Double> data) {
+        this.data = data.keySet().stream()
+                .collect(Collectors.toMap(
+                        (DataValues dataVal) -> dataVal,
+                        (DataValues dataVal) -> data.get(dataVal)
+                ));
     }
 
 }

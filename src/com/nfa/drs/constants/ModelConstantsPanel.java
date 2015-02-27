@@ -6,6 +6,7 @@
 package com.nfa.drs.constants;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.nfa.drs.constants.ModelConstants.Constants;
 import com.nfa.gui.JNumberTextField;
 import java.awt.GridBagConstraints;
@@ -26,6 +27,7 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.filechooser.FileFilter;
 
@@ -38,6 +40,18 @@ public class ModelConstantsPanel extends JPanel {
     // Constants
     public static final int BORDER_WIDTH = 5;
     public static final int ENTRY_BORDER_WIDTH = 4;
+
+    private static final FileFilter JSON_FILTER = new FileFilter() {
+        @Override
+        public String getDescription() {
+            return "Json Files (*.json)";
+        }
+
+        @Override
+        public boolean accept(File file) {
+            return file.isDirectory() || file.getAbsoluteFile().toString().endsWith(".json");
+        }
+    };
 
 
     // Fields
@@ -69,6 +83,17 @@ public class ModelConstantsPanel extends JPanel {
         return mcs;
     }
 
+    public void setModelConstants(ModelConstants constants) {
+        Arrays.asList(Constants.values()).stream()
+                .forEach((Constants constant) -> {
+                    JNumberTextField field = this.constantBoxes.get(constant);
+                    if (field != null) {
+                        double value = constants.getConstant(constant);
+                        field.setNumber(value);
+                    }
+                });
+    }
+
 
     // Initialization
     public ModelConstantsPanel() {
@@ -96,7 +121,7 @@ public class ModelConstantsPanel extends JPanel {
             cLabel.gridx = col;
             cLabel.gridy = row;
             cLabel.anchor = GridBagConstraints.FIRST_LINE_START;
-            cLabel.insets = new Insets(ENTRY_BORDER_WIDTH, ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
+            cLabel.insets = new Insets(ENTRY_BORDER_WIDTH, col * ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
             cLabel.fill = GridBagConstraints.HORIZONTAL;
 
             this.add(label, cLabel);
@@ -110,7 +135,7 @@ public class ModelConstantsPanel extends JPanel {
             cText.gridx = col;
             cText.gridy = row + 1;
             cText.anchor = GridBagConstraints.FIRST_LINE_START;
-            cText.insets = new Insets(ENTRY_BORDER_WIDTH, ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
+            cText.insets = new Insets(ENTRY_BORDER_WIDTH, col * ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
             cText.fill = GridBagConstraints.HORIZONTAL;
 
             this.add(textField, cText);
@@ -155,36 +180,47 @@ public class ModelConstantsPanel extends JPanel {
     }
 
     private void onImportClick(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(JSON_FILTER);
 
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            Path file = chooser.getSelectedFile().toPath();
+
+            try {
+                Gson gson = new Gson();
+                String json = Files.readAllLines(file).stream()
+                        .reduce("", (String first, String second) -> first + System.lineSeparator() + second);
+                ModelConstants mcs = gson.fromJson(json, ModelConstants.class);
+
+                if (mcs != null) {
+                    this.setModelConstants(mcs);
+                }
+            }
+            catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "There was an error while importing the model constants.", "Import Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void onExportClick(ActionEvent e) {
         JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new FileFilter() {
-            @Override
-            public String getDescription() {
-                return "Json Files (*.json)";
-            }
-            
-            @Override
-            public boolean accept(File file) {
-                return file.getAbsoluteFile().toString().endsWith(".json");
-            }
-        });
+        chooser.setFileFilter(JSON_FILTER);
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             Path file = chooser.getSelectedFile().toPath();
-            
-            if (!file.toString().endsWith(".json")) {
+
+            if (chooser.getFileFilter().equals(JSON_FILTER) && !file.toString().endsWith(".json")) {
                 file = Paths.get(file.toString() + ".json");
             }
 
             ModelConstants mcs = this.getModelConstants();
-            Gson gson = new Gson();
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
             String json = gson.toJson(mcs);
 
             try {
-                Files.write(file, Arrays.asList(new String[]{json}), StandardOpenOption.CREATE_NEW);
+                Files.write(file, Arrays.asList(new String[]{json}), StandardOpenOption.CREATE);
             }
             catch (IOException ex) {
 

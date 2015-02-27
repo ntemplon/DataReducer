@@ -56,6 +56,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
         formatCombo = new javax.swing.JComboBox();
         botGlue = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
         modelConstantsLabel = new javax.swing.JLabel();
+        modelConstantsPanel1 = new com.nfa.drs.constants.ModelConstantsPanel();
         importPanel = new javax.swing.JPanel();
         thermalPanel = new javax.swing.JPanel();
         reductionPanel = new javax.swing.JPanel();
@@ -112,6 +113,11 @@ public class DataReductionPanel extends javax.swing.JPanel {
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
         configPanel.add(modelConstantsLabel, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        configPanel.add(modelConstantsPanel1, gridBagConstraints);
 
         tabbedPane.addTab("Settings", configPanel);
 
@@ -180,6 +186,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.JLabel inputFormatLabel;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel modelConstantsLabel;
+    private com.nfa.drs.constants.ModelConstantsPanel modelConstantsPanel1;
     private javax.swing.JPanel reductionPanel;
     private javax.swing.JTabbedPane tabbedPane;
     private javax.swing.JPanel thermalPanel;

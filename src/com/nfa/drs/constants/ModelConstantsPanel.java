@@ -5,32 +5,191 @@
  */
 package com.nfa.drs.constants;
 
+import com.google.gson.Gson;
 import com.nfa.drs.constants.ModelConstants.Constants;
+import com.nfa.gui.JNumberTextField;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.filechooser.FileFilter;
 
 /**
  *
  * @author Nathan Templon
  */
 public class ModelConstantsPanel extends JPanel {
-    
+
+    // Constants
+    public static final int BORDER_WIDTH = 5;
+    public static final int ENTRY_BORDER_WIDTH = 4;
+
+
+    // Fields
+    private final Map<Constants, JNumberTextField> constantBoxes = new HashMap<>();
+
+    private JButton importButton;
+    private JButton exportButton;
+
+
+    // Properties
+    public ModelConstants getModelConstants() {
+        ModelConstants mcs = new ModelConstants();
+
+        this.constantBoxes.keySet().stream()
+                .forEach((Constants constant) -> {
+                    Double value = null;
+                    try {
+                        value = this.constantBoxes.get(constant).getDouble();
+                        if (value == null) {
+                            value = 0.0;
+                        }
+                    }
+                    catch (Exception ex) {
+                        value = 0.0;
+                    }
+                    mcs.setConstant(constant, value);
+                });
+
+        return mcs;
+    }
+
+
     // Initialization
     public ModelConstantsPanel() {
-        
+
         this.initComponents();
-        
+
     }
-    
-    
+
+
     // Private Methods
     private void initComponents() {
         this.setLayout(new GridBagLayout());
-        
-        for(Constants mc : Constants.values()) {
-            GridBagConstraints c = new GridBagConstraints();
+
+        this.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEtchedBorder(),
+                BorderFactory.createEmptyBorder(BORDER_WIDTH / 2, BORDER_WIDTH, BORDER_WIDTH, BORDER_WIDTH)));
+
+        int row = 0;
+        int col = 0;
+        for (Constants mc : Constants.values()) {
+            JLabel label = new JLabel(mc.getDisplayName());
+            label.setToolTipText(mc.getDescription());
+
+            GridBagConstraints cLabel = new GridBagConstraints();
+            cLabel.gridx = col;
+            cLabel.gridy = row;
+            cLabel.anchor = GridBagConstraints.FIRST_LINE_START;
+            cLabel.insets = new Insets(ENTRY_BORDER_WIDTH, ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
+            cLabel.fill = GridBagConstraints.HORIZONTAL;
+
+            this.add(label, cLabel);
+
+            JNumberTextField textField = new JNumberTextField();
+            textField.setToolTipText(mc.getDescription());
+            textField.setFormat(JNumberTextField.DECIMAL);
+            textField.setNumber(0.0);
+
+            GridBagConstraints cText = new GridBagConstraints();
+            cText.gridx = col;
+            cText.gridy = row + 1;
+            cText.anchor = GridBagConstraints.FIRST_LINE_START;
+            cText.insets = new Insets(ENTRY_BORDER_WIDTH, ENTRY_BORDER_WIDTH, 0, (1 - col) * ENTRY_BORDER_WIDTH);
+            cText.fill = GridBagConstraints.HORIZONTAL;
+
+            this.add(textField, cText);
+            this.constantBoxes.put(mc, textField);
+
+            // Increment for the next entry
+            row += 2 * col;
+            col = (col + 1) % 2;
+        }
+
+        this.importButton = new JButton("Import");
+        this.exportButton = new JButton("Export");
+
+        this.importButton.addActionListener(this::onImportClick);
+        this.exportButton.addActionListener(this::onExportClick);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridBagLayout());
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.weightx = 1.0;
+        buttonPanel.add(Box.createHorizontalGlue(), c);
+        buttonPanel.add(this.importButton);
+        buttonPanel.add(Box.createHorizontalStrut(5));
+        buttonPanel.add(this.exportButton);
+
+        GridBagConstraints cBtn = new GridBagConstraints();
+        cBtn.gridx = 0;
+        cBtn.gridy = row + 1;
+        cBtn.weightx = 1.0;
+        cBtn.gridwidth = GridBagConstraints.REMAINDER;
+        cBtn.fill = GridBagConstraints.HORIZONTAL;
+        cBtn.insets = new Insets(ENTRY_BORDER_WIDTH, 0, 0, 0);
+        this.add(buttonPanel, cBtn);
+
+        GridBagConstraints cGlue = new GridBagConstraints();
+        cGlue.gridx = 0;
+        cGlue.gridy = row + 2;
+        cGlue.weighty = 1.0;
+        cGlue.gridwidth = GridBagConstraints.REMAINDER;
+        this.add(Box.createVerticalGlue(), cGlue);
+    }
+
+    private void onImportClick(ActionEvent e) {
+
+    }
+
+    private void onExportClick(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileFilter() {
+            @Override
+            public String getDescription() {
+                return "Json Files (*.json)";
+            }
+            
+            @Override
+            public boolean accept(File file) {
+                return file.getAbsoluteFile().toString().endsWith(".json");
+            }
+        });
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            Path file = chooser.getSelectedFile().toPath();
+            
+            if (!file.toString().endsWith(".json")) {
+                file = Paths.get(file.toString() + ".json");
+            }
+
+            ModelConstants mcs = this.getModelConstants();
+            Gson gson = new Gson();
+            String json = gson.toJson(mcs);
+
+            try {
+                Files.write(file, Arrays.asList(new String[]{json}), StandardOpenOption.CREATE_NEW);
+            }
+            catch (IOException ex) {
+
+            }
         }
     }
-    
+
 }

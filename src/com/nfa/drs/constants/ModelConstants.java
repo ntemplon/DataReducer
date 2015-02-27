@@ -52,4 +52,18 @@ public class ModelConstants {
     // Fields
     private final Map<Constants, Double> constants = new HashMap<>();
     
+    
+    // Properties
+    public Double getConstant(Constants constant) {
+        Double val = this.constants.get(constant);
+        if (val != null) {
+            return val;
+        }
+        return 0.0;
+    }
+    
+    public void setConstant(Constants constant, Double value) {
+        this.constants.put(constant, value);
+    }
+    
 }

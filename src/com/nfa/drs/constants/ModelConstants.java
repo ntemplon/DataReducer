@@ -5,9 +5,12 @@
  */
 package com.nfa.drs.constants;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -32,6 +35,29 @@ public class ModelConstants {
         Lambda2("\u03BB2 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (3rd ed) figure 9.16."),
         Lambda3("\u03BB3 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (2nd ed) figure 6.12."),
         k("k Constant", "A factor from Rae, Pope, and Barlow.");
+
+        private static final Map<String, Constants> byDisplayName = new HashMap<>();
+        private static final Lock bdnLock = new ReentrantLock();
+
+        public static Constants getByDisplayName(String displayName) {
+            if (byDisplayName.isEmpty()) {
+                bdnLock.lock();
+
+                try {
+                    if (byDisplayName.isEmpty()) {
+                        Arrays.asList(Constants.values()).stream()
+                                .forEach((Constants constant) -> {
+                                    byDisplayName.put(constant.getDisplayName(), constant);
+                                });
+                    }
+                }
+                finally {
+                    bdnLock.unlock();
+                }
+            }
+
+            return byDisplayName.get(displayName);
+        }
 
         private final String displayName;
         private final String description;

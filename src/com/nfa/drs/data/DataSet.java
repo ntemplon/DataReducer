@@ -5,7 +5,12 @@
  */
 package com.nfa.drs.data;
 
+import com.nfa.drs.constants.ModelConstants;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -22,6 +27,29 @@ public class DataSet {
         Drag("Drag (lbf)"),
         PitchMoment("Pitching Moment (ft-lbf)"),
         DynamicPressure("Q (psf)");
+        
+        private static final Map<String, DataValues> byDisplayName = new HashMap<>();
+        private static final Lock bdnLock = new ReentrantLock();
+
+        public static DataValues getByDisplayName(String displayName) {
+            if (byDisplayName.isEmpty()) {
+                bdnLock.lock();
+
+                try {
+                    if (byDisplayName.isEmpty()) {
+                        Arrays.asList(DataValues.values()).stream()
+                                .forEach((DataValues dataVAlue) -> {
+                                    byDisplayName.put(dataVAlue.getDisplayName(), dataVAlue);
+                                });
+                    }
+                }
+                finally {
+                    bdnLock.unlock();
+                }
+            }
+
+            return byDisplayName.get(displayName);
+        }
 
         private final String displayName;
         

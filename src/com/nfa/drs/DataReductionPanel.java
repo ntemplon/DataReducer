@@ -127,6 +127,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
         dataScrollPane.setPreferredSize(new java.awt.Dimension(650, 300));
 
+        dataContainerViewer.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
         dataContainerViewer.setPreferredScrollableViewportSize(new java.awt.Dimension(0, 0));
         dataContainerViewer.setPreferredSize(new java.awt.Dimension(0, 0));
         dataScrollPane.setViewportView(dataContainerViewer);

@@ -5,17 +5,25 @@
  */
 package com.nfa.drs;
 
+import com.jupiter.ganymede.property.Property;
+import com.jupiter.ganymede.property.Property.PropertyChangedArgs;
 import com.nfa.drs.data.DataFormat;
+import com.nfa.drs.data.Run;
 import com.nfa.drs.data.StudentWindTunnelFormat;
+import com.nfa.drs.data.Test;
+import java.awt.event.ActionEvent;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.JFileChooser;
 
 /**
  *
  * @author Nathan Templon
  */
 public class DataReductionPanel extends javax.swing.JPanel {
-    
+
     // Static Fields
     private static final Map<String, DataFormat> formats = new HashMap<>();
     static {
@@ -23,19 +31,57 @@ public class DataReductionPanel extends javax.swing.JPanel {
         formats.put(wsu3by4.getName(), wsu3by4);
     }
     
+    
+    // Fields
+    private final Property<Test> test = new Property<>();
+
 
     /**
      * Creates new form DataReductionPanel
      */
     public DataReductionPanel() {
         this.initComponents();
-        
+
         this.formatCombo.removeAllItems();
         formats.keySet().stream()
                 .forEach((String name) -> this.formatCombo.addItem(name));
+        
+        this.thermalBiasRunCombo.removeAllItems();
+
+        this.importButton.addActionListener(this::inputButtonActionPerformed);
+        
+        this.test.addPropertyChangedListener(this::resetThermalBias);
+    }
+
+
+    // Private Methods
+    private void inputButtonActionPerformed(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        if (chooser.showDialog(this, "Import") == JFileChooser.APPROVE_OPTION) {
+            Path dir = chooser.getSelectedFile().toPath();
+            if (Files.isDirectory(dir)) {
+                DataFormat format = formats.get(this.formatCombo.getSelectedItem().toString());
+                this.test.set(format.fromDirectory(dir));
+                this.test.get().getRuns().stream()
+                        .forEach((Run run) ->
+                                run.getDatapoints().stream()
+                                .forEach((point) ->
+                                        this.dataViewer.addData(run.getName(), point)
+                                )
+                        );
+            }
+        }
     }
     
-    // Private Methods
+    private void resetThermalBias(PropertyChangedArgs<Test> e) {
+        this.thermalBiasRunCombo.removeAllItems();
+        this.test.get().getRuns().stream()
+                .forEach((Run run) -> this.thermalBiasRunCombo.addItem(run.getName()));
+    }
+
+    // Designer  
     /**
      * This method is called from within the constructor to
      * initialize the form.
@@ -56,10 +102,13 @@ public class DataReductionPanel extends javax.swing.JPanel {
         modelConstantsLabel = new javax.swing.JLabel();
         modelConstantsPanel1 = new com.nfa.drs.constants.ModelConstantsPanel();
         importPanel = new javax.swing.JPanel();
-        importDataLabel = new javax.swing.JLabel();
         dataScrollPane = new javax.swing.JScrollPane();
         dataViewer = new com.nfa.drs.data.DataContainerViewer();
+        importButton = new javax.swing.JButton();
         thermalPanel = new javax.swing.JPanel();
+        thermalRunLabel = new javax.swing.JLabel();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
+        thermalBiasRunCombo = new javax.swing.JComboBox();
         reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
 
@@ -125,39 +174,54 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
         importPanel.setLayout(new java.awt.GridBagLayout());
 
-        importDataLabel.setText("Import Data");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LAST_LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
-        importPanel.add(importDataLabel, gridBagConstraints);
-
         dataViewer.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
         dataScrollPane.setViewportView(dataViewer);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 10;
+        gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
         importPanel.add(dataScrollPane, gridBagConstraints);
 
+        importButton.setText("Import Data");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
+        importPanel.add(importButton, gridBagConstraints);
+
         tabbedPane.addTab("Raw Data", importPanel);
 
-        javax.swing.GroupLayout thermalPanelLayout = new javax.swing.GroupLayout(thermalPanel);
-        thermalPanel.setLayout(thermalPanelLayout);
-        thermalPanelLayout.setHorizontalGroup(
-            thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 935, Short.MAX_VALUE)
-        );
-        thermalPanelLayout.setVerticalGroup(
-            thermalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 563, Short.MAX_VALUE)
-        );
+        thermalPanel.setLayout(new java.awt.GridBagLayout());
+
+        thermalRunLabel.setText("Select Run");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 0);
+        thermalPanel.add(thermalRunLabel, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 100;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        thermalPanel.add(filler1, gridBagConstraints);
+
+        thermalBiasRunCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        thermalBiasRunCombo.setPreferredSize(new java.awt.Dimension(200, 25));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 0);
+        thermalPanel.add(thermalBiasRunCombo, gridBagConstraints);
 
         tabbedPane.addTab("Thermal Bias", thermalPanel);
 
@@ -197,8 +261,9 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.JScrollPane dataScrollPane;
     private javax.swing.JPanel dataTab;
     private com.nfa.drs.data.DataContainerViewer dataViewer;
+    private javax.swing.Box.Filler filler1;
     private javax.swing.JComboBox formatCombo;
-    private javax.swing.JLabel importDataLabel;
+    private javax.swing.JButton importButton;
     private javax.swing.JPanel importPanel;
     private javax.swing.JLabel inputFormatLabel;
     private javax.swing.JPanel jPanel1;
@@ -206,6 +271,8 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private com.nfa.drs.constants.ModelConstantsPanel modelConstantsPanel1;
     private javax.swing.JPanel reductionPanel;
     private javax.swing.JTabbedPane tabbedPane;
+    private javax.swing.JComboBox thermalBiasRunCombo;
     private javax.swing.JPanel thermalPanel;
+    private javax.swing.JLabel thermalRunLabel;
     // End of variables declaration//GEN-END:variables
 }

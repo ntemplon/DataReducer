@@ -25,6 +25,10 @@ public class Datapoint implements DataContainer {
     public String getComment() {
         return this.comment;
     }
+    
+    public void setPointNumber(int pointNumber) {
+        this.data.setPointNumber(pointNumber);
+    }
 
     
     

@@ -6,7 +6,8 @@
 package com.nfa.drs.data;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -16,21 +17,32 @@ import java.util.stream.Collectors;
 public class Test {
     
     // Fields
-    private final Set<Run> runs;
-    private final Set<Run> runsAccessor;
+    private final List<Run> runs;
+    private final List<Run> runsAccessor;
+    private final Map<String, Run> byName;
     
     
     // Properties
-    public final Set<Run> getRuns() {
+    public final List<Run> getRuns() {
         return this.runsAccessor;
+    }
+    
+    public final Run getRun(String name) {
+        return this.byName.get(name);
     }
     
     
     // Initialization
-    public Test(Set<Run> runs) {
+    public Test(List<Run> runs) {
         this.runs = runs.stream()
-                .collect(Collectors.toSet());
-        this.runsAccessor = Collections.unmodifiableSet(this.runs);
+                .collect(Collectors.toList());
+        this.runsAccessor = Collections.unmodifiableList(this.runs);
+        
+        this.byName = this.runs.stream()
+                .collect(Collectors.toMap(
+                        (Run run) -> run.getName(),
+                        (Run run) -> run)
+                );
     }
     
 }

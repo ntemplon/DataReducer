@@ -7,7 +7,6 @@ package com.nfa.drs.data;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 
 /**
  *
@@ -17,6 +16,6 @@ public interface DataFormat {
     String getName();
     
     Test fromDirectory(Path directory);
-    Set<Run> fromBlock(List<String> text);
+    List<Run> fromBlock(List<String> text);
     Datapoint fromLine(String line);
 }

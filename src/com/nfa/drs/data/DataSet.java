@@ -5,7 +5,7 @@
  */
 package com.nfa.drs.data;
 
-import com.nfa.drs.constants.ModelConstants;
+import static com.nfa.drs.data.DataSet.DataValues.TestPoint;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,6 +65,12 @@ public class DataSet {
 
     // Fields
     private final Map<DataValues, Double> data;
+    
+    
+    // Properties
+    public final void setPointNumber(int pointNumber) {
+        this.data.put(TestPoint, new Double(pointNumber));
+    }
     
     
     // Public Methods

@@ -23,7 +23,7 @@ import javax.swing.table.AbstractTableModel;
 public class DataContainerViewer extends JTable {
 
     // Constants
-    public static final String DESCRIPTION_COLUMN_NAME = "Description";
+    public static final String DESCRIPTION_COLUMN_NAME = "Run Name";
 
     private static String[] getHeaderStrings() {
         List<String> names = new ArrayList<>();
@@ -38,16 +38,7 @@ public class DataContainerViewer extends JTable {
 
 
     // Fields
-    private final List<DataContainer> dataContainers = new ArrayList<>();
-    private final List<DataContainer> containerAccess = Collections.unmodifiableList(this.dataContainers);
-    private final Map<String, DataContainer> byName = new HashMap<>();
     private final DataViewerModel model;
-    
-    
-    // Properties
-    public List<DataContainer> getDataContainers() {
-        return this.containerAccess;
-    }
 
 
     // Initialization
@@ -103,6 +94,13 @@ public class DataContainerViewer extends JTable {
         public void addData(String name, DataContainer data) {
             this.rowNames.add(name);
             this.data.add(data);
+            this.fireTableDataChanged();
+        }
+        
+        public void clear() {
+            this.rowNames.clear();
+            this.data.clear();
+            this.fireTableDataChanged();
         }
 
 
@@ -129,7 +127,7 @@ public class DataContainerViewer extends JTable {
                 if (rowNames.isEmpty()) {
                     return "";
                 }
-                return rowNames.get(columnIndex);
+                return rowNames.get(rowIndex);
             }
             else {
                 if (data.isEmpty()) {

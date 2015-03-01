@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -43,7 +44,9 @@ public class StudentWindTunnelFormat implements DataFormat {
 
     public static final int LINES_IN_HEADER = 8;
     
-    
+    private final Pattern numCheck = Pattern.compile("[\\-0-9\\.]+");
+
+
     // Properties
     @Override
     public String getName() {
@@ -55,7 +58,7 @@ public class StudentWindTunnelFormat implements DataFormat {
     @Override
     public Test fromDirectory(Path dir) {
         if (Files.isDirectory(dir)) {
-            Set<Run> runs = new HashSet<>();
+            List<Run> runs = new ArrayList<>(20);
             try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dir)) {
                 for (Path path : dirStream) {
                     try {
@@ -64,7 +67,7 @@ public class StudentWindTunnelFormat implements DataFormat {
                         }
                     }
                     catch (IOException ex) {
-
+                        
                     }
                 }
             }
@@ -77,35 +80,46 @@ public class StudentWindTunnelFormat implements DataFormat {
     }
 
     @Override
-    public Set<Run> fromBlock(List<String> text) {
-        Set<Run> runs = new HashSet<>();
-
-        final Pattern numCheck = Pattern.compile("\b[0-9\\.]+\b");
+    public List<Run> fromBlock(List<String> text) {
+        List<Run> runs = new ArrayList<>(20);
 
         String name = "";
         List<Datapoint> points = new ArrayList<>(30);
+        int pointNumber = 1;
         ParseStates state = ParseStates.RUN_NAME;
         for (int i = LINES_IN_HEADER; i < text.size(); i++) {
             String line = text.get(i);
-            if (line.isEmpty()) {
+            line = line.trim();
+            if (line.replace(",", "").isEmpty()) {
                 if (state.equals(ParseStates.DATA)) {
                     runs.add(new Run(name, points));
                     points.clear();
                     name = "";
+                    state = ParseStates.RUN_NAME;
+                    pointNumber = 1;
                 }
             }
             else {
                 String[] parts = line.split(",");
                 if (state.equals(ParseStates.RUN_NAME)) {
-                    name = parts[0];
-                    state = ParseStates.DATA;
+                    if (parts.length == 1) {
+                        name = parts[0];
+                        state = ParseStates.DATA;
+                    }
                 }
                 else if (state.equals(ParseStates.DATA)) {
-                    if (numCheck.asPredicate().test(line)) {
-                        points.add(this.fromLine(line));
+                    if (isNumber(parts[0])) {
+                        Datapoint point = this.fromLine(line);
+                        point.setPointNumber(pointNumber);
+                        points.add(point);
+                        pointNumber++;
                     }
                 }
             }
+        }
+        
+        if (!points.isEmpty()) {
+            runs.add(new Run(name, points));
         }
 
         return runs;
@@ -131,7 +145,7 @@ public class StudentWindTunnelFormat implements DataFormat {
         if (parts.length > Q_INDEX) {
             data.put(DataValues.DynamicPressure, this.safeParse(parts[Q_INDEX]));
         }
-        
+
         DataSet ds = new DataSet(data);
 
         String comment = "";
@@ -151,6 +165,14 @@ public class StudentWindTunnelFormat implements DataFormat {
         catch (Exception ex) {
             return 0.0;
         }
+    }
+    
+    private boolean isNumber(String test) {
+        Matcher match = numCheck.matcher(test);
+        if (!match.matches()) {
+            return false;
+        }
+        return match.start() == 0 && match.end() == test.length();
     }
 
 }

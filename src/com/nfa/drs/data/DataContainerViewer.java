@@ -6,7 +6,7 @@
 package com.nfa.drs.data;
 
 import com.nfa.drs.data.DataSet.DataValues;
-import java.awt.Component;
+import com.nfa.gui.TableColumnAdjuster;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumnModel;
 
 /**
  *
@@ -44,17 +42,23 @@ public class DataContainerViewer extends JTable {
     private final List<DataContainer> containerAccess = Collections.unmodifiableList(this.dataContainers);
     private final Map<String, DataContainer> byName = new HashMap<>();
     private final DataViewerModel model;
+    
+    
+    // Properties
+    public List<DataContainer> getDataContainers() {
+        return this.containerAccess;
+    }
 
 
     // Initialization
     public DataContainerViewer() {
         this(new DataViewerModel());
-        this.initComponent();
     }
 
     private DataContainerViewer(DataViewerModel model) {
         super(model);
         this.model = model;
+        this.initComponent();
     }
 
 
@@ -67,13 +71,16 @@ public class DataContainerViewer extends JTable {
     // Private Methods
     private void initComponent() {
         this.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN;
+        TableColumnAdjuster tca = new TableColumnAdjuster(this);
+        tca.adjustColumns();
         
-        TableColumnModel cModel = this.getColumnModel();
-        for (int col = 0; col < this.getColumnCount(); col++) {
-            TableCellRenderer render = this.getCellRenderer(0, col);
-            Component comp = this.prepareRenderer(render, 0, col);
-            cModel.getColumn(col).setPreferredWidth(comp.getPreferredSize().width);
-        }
+//        TableColumnModel cModel = this.getColumnModel();
+//        for (int col = 0; col < this.getColumnCount(); col++) {
+//            TableCellRenderer render = this.getCellRenderer(0, col);
+//            Component comp = this.prepareRenderer(render, 0, col);
+//            cModel.getColumn(col).setPreferredWidth(comp.getPreferredSize().width);
+//            System.out.println(this.model.getColumnName(col) + ": " + comp.getPreferredSize().width);
+//        }
     }
 
 

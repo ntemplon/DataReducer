@@ -7,8 +7,6 @@ package com.nfa.drs;
 
 import com.nfa.drs.data.DataFormat;
 import com.nfa.drs.data.StudentWindTunnelFormat;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +28,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
      * Creates new form DataReductionPanel
      */
     public DataReductionPanel() {
-        initComponents();
+        this.initComponents();
         
         this.formatCombo.removeAllItems();
         formats.keySet().stream()
@@ -58,8 +56,9 @@ public class DataReductionPanel extends javax.swing.JPanel {
         modelConstantsLabel = new javax.swing.JLabel();
         modelConstantsPanel1 = new com.nfa.drs.constants.ModelConstantsPanel();
         importPanel = new javax.swing.JPanel();
+        importDataLabel = new javax.swing.JLabel();
         dataScrollPane = new javax.swing.JScrollPane();
-        dataContainerViewer = new com.nfa.drs.data.DataContainerViewer();
+        dataViewer = new com.nfa.drs.data.DataContainerViewer();
         thermalPanel = new javax.swing.JPanel();
         reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
@@ -113,31 +112,35 @@ public class DataReductionPanel extends javax.swing.JPanel {
         gridBagConstraints.gridy = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
         configPanel.add(modelConstantsLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
         configPanel.add(modelConstantsPanel1, gridBagConstraints);
 
         tabbedPane.addTab("Settings", configPanel);
 
         importPanel.setLayout(new java.awt.GridBagLayout());
 
-        dataScrollPane.setPreferredSize(new java.awt.Dimension(650, 300));
-
-        dataContainerViewer.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
-        dataContainerViewer.setPreferredScrollableViewportSize(new java.awt.Dimension(0, 0));
-        dataContainerViewer.setPreferredSize(new java.awt.Dimension(0, 0));
-        dataScrollPane.setViewportView(dataContainerViewer);
-
+        importDataLabel.setText("Import Data");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LAST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        importPanel.add(importDataLabel, gridBagConstraints);
+
+        dataViewer.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
+        dataScrollPane.setViewportView(dataViewer);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
@@ -191,10 +194,11 @@ public class DataReductionPanel extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.Box.Filler botGlue;
     private javax.swing.JPanel configPanel;
-    private com.nfa.drs.data.DataContainerViewer dataContainerViewer;
     private javax.swing.JScrollPane dataScrollPane;
     private javax.swing.JPanel dataTab;
+    private com.nfa.drs.data.DataContainerViewer dataViewer;
     private javax.swing.JComboBox formatCombo;
+    private javax.swing.JLabel importDataLabel;
     private javax.swing.JPanel importPanel;
     private javax.swing.JLabel inputFormatLabel;
     private javax.swing.JPanel jPanel1;

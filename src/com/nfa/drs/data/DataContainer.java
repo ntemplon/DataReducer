@@ -11,4 +11,5 @@ package com.nfa.drs.data;
  */
 public interface DataContainer {
     DataSet getData();
+    String getComment();
 }

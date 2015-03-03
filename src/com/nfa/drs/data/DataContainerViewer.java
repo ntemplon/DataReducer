@@ -10,9 +10,7 @@ import com.nfa.gui.TableColumnAdjuster;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 
@@ -24,6 +22,7 @@ public class DataContainerViewer extends JTable {
 
     // Constants
     public static final String DESCRIPTION_COLUMN_NAME = "Run Name";
+    public static final String COMMENT_COLUMN_NAME = "Comment";
 
     private static String[] getHeaderStrings() {
         List<String> names = new ArrayList<>();
@@ -32,6 +31,7 @@ public class DataContainerViewer extends JTable {
         for (DataValues value : DataValues.values()) {
             names.add(value.getDisplayName());
         }
+        names.add(COMMENT_COLUMN_NAME);
 
         return names.toArray(new String[names.size()]);
     }
@@ -39,6 +39,7 @@ public class DataContainerViewer extends JTable {
 
     // Fields
     private final DataViewerModel model;
+    private final TableColumnAdjuster tca;
 
 
     // Initialization
@@ -49,29 +50,20 @@ public class DataContainerViewer extends JTable {
     private DataContainerViewer(DataViewerModel model) {
         super(model);
         this.model = model;
-        this.initComponent();
+        this.tca = new TableColumnAdjuster(this);
+        this.tca.adjustColumns();
     }
 
 
     // Public Methods
     public void addData(String name, DataContainer data) {
         this.model.addData(name, data);
+        this.tca.adjustColumns();
     }
 
-
-    // Private Methods
-    private void initComponent() {
-        this.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN;
-        TableColumnAdjuster tca = new TableColumnAdjuster(this);
+    public void clear() {
+        this.model.clear();
         tca.adjustColumns();
-        
-//        TableColumnModel cModel = this.getColumnModel();
-//        for (int col = 0; col < this.getColumnCount(); col++) {
-//            TableCellRenderer render = this.getCellRenderer(0, col);
-//            Component comp = this.prepareRenderer(render, 0, col);
-//            cModel.getColumn(col).setPreferredWidth(comp.getPreferredSize().width);
-//            System.out.println(this.model.getColumnName(col) + ": " + comp.getPreferredSize().width);
-//        }
     }
 
 
@@ -79,9 +71,8 @@ public class DataContainerViewer extends JTable {
     private static class DataViewerModel extends AbstractTableModel {
 
         // Fields
-        private final List<String> rowNames = new ArrayList<>();
-        private final List<DataContainer> data = new ArrayList<>();
         private final List<String> columnNames = Collections.unmodifiableList(Arrays.asList(DataContainerViewer.getHeaderStrings()));
+        private final List<Object[]> data = new ArrayList<>();
 
 
         // Initializaiton
@@ -92,13 +83,26 @@ public class DataContainerViewer extends JTable {
 
         // Public Methods
         public void addData(String name, DataContainer data) {
-            this.rowNames.add(name);
-            this.data.add(data);
-            this.fireTableDataChanged();
+            Object[] objs = new Object[this.columnNames.size()];
+
+            int index = 0;
+            objs[index] = name;
+            index++;
+            for (String header : columnNames) {
+                if (!(header.equals(DESCRIPTION_COLUMN_NAME) || header.equals(COMMENT_COLUMN_NAME))) {
+                    DataValues values = DataValues.getByDisplayName(header);
+                    objs[index] = data.getData().get(values);
+                    index++;
+                }
+            }
+            objs[index] = data.getComment();
+
+            this.data.add(objs);
+
+            this.fireTableRowsInserted(this.data.size() - 1, this.data.size() - 1);
         }
-        
+
         public void clear() {
-            this.rowNames.clear();
             this.data.clear();
             this.fireTableDataChanged();
         }
@@ -122,20 +126,7 @@ public class DataContainerViewer extends JTable {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            String header = this.getColumnName(columnIndex);
-            if (header.equals(DataContainerViewer.DESCRIPTION_COLUMN_NAME)) {
-                if (rowNames.isEmpty()) {
-                    return "";
-                }
-                return rowNames.get(rowIndex);
-            }
-            else {
-                if (data.isEmpty()) {
-                    return 0.0;
-                }
-                DataValues dataValue = DataValues.getByDisplayName(header);
-                return this.data.get(rowIndex).getData().get(dataValue);
-            }
+            return this.data.get(rowIndex)[columnIndex];
         }
 
         @Override

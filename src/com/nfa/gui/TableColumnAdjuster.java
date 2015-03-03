@@ -254,6 +254,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 //
 //  Implement the PropertyChangeListener
 //
+    @Override
 	public void propertyChange(PropertyChangeEvent e)
 	{
 		//  When the TableModel changes we need to update the listeners
@@ -272,6 +273,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 //
 //  Implement the TableModelListener
 //
+    @Override
 	public void tableChanged(TableModelEvent e)
 	{
 		if (! isColumnDataIncluded) return;
@@ -358,7 +360,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
     	private boolean isSelectedColumn;
     	private boolean isAdjust;
 
-		public ColumnAction(boolean isSelectedColumn, boolean isAdjust)
+		ColumnAction(boolean isSelectedColumn, boolean isAdjust)
 		{
 			this.isSelectedColumn = isSelectedColumn;
 			this.isAdjust = isAdjust;
@@ -400,7 +402,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 		private boolean isToggleDynamic;
 		private boolean isToggleLarger;
 
-		public ToggleAction(boolean isToggleDynamic, boolean isToggleLarger)
+		ToggleAction(boolean isToggleDynamic, boolean isToggleLarger)
 		{
 			this.isToggleDynamic = isToggleDynamic;
 			this.isToggleLarger = isToggleLarger;

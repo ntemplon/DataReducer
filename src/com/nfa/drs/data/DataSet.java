@@ -21,16 +21,19 @@ public class DataSet {
 
     // Enumerations
     public enum DataValues {
-        TestPoint("Test Point"),
-        AngleOfAttack("Angle of Attack (deg)"),
-        Lift("Lift (lbf)"),
-        Drag("Drag (lbf)"),
-        PitchMoment("Pitching Moment (ft-lbf)"),
-        DynamicPressure("Q (psf)");
+        TestPoint("Test Point", Integer.class),
+        AngleOfAttack("Angle of Attack (deg)", Double.class),
+        Lift("Lift (lbf)", Double.class),
+        Drag("Drag (lbf)", Double.class),
+        PitchMoment("Pitching Moment (ft-lbf)", Double.class),
+        DynamicPressure("Q (psf)", Double.class);
         
+        // Static Fields
         private static final Map<String, DataValues> byDisplayName = new HashMap<>();
         private static final Lock bdnLock = new ReentrantLock();
 
+        
+        // Static Methods
         public static DataValues getByDisplayName(String displayName) {
             if (byDisplayName.isEmpty()) {
                 bdnLock.lock();
@@ -51,14 +54,26 @@ public class DataSet {
             return byDisplayName.get(displayName);
         }
 
-        private final String displayName;
         
+        // Fields
+        private final String displayName;
+        private final Class<?> valueClass;
+        
+        
+        // Properties
         public final String getDisplayName() {
             return this.displayName;
         }
         
-        DataValues(String displayName) {
+        public final Class<?> getValueClass() {
+            return this.valueClass;
+        }
+        
+        
+        // Initialization
+        DataValues(String displayName, Class<?> valueClass) {
             this.displayName = displayName;
+            this.valueClass = valueClass;
         }
     }
 

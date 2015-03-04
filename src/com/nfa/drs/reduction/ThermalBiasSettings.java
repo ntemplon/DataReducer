@@ -5,6 +5,7 @@
  */
 package com.nfa.drs.reduction;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ public class ThermalBiasSettings {
     
     // Enumerations
     public enum ThermalBiasLinearity {
-        POINT("Point Number"),
+        POINT("Test Point"),
         TIME("Time");
         
         private final String displayName;
@@ -38,6 +39,7 @@ public class ThermalBiasSettings {
     
     // Fields
     private final Map<Integer, Double> times = new HashMap<>();
+    private final Map<Integer, Double> timesAccess = Collections.unmodifiableMap(this.times);
     
     private boolean computeThermalBias;
     private int startPoint;
@@ -114,13 +116,26 @@ public class ThermalBiasSettings {
         this.times.put(point, time);
     }
     
+    public Map<Integer, Double> getTimes() {
+        return this.timesAccess;
+    }
+    
+    public void setTimes(Map<Integer, Double> times) {
+        this.times.clear();
+        this.times.putAll(times);
+    }
+    
     
     // Initialization
-    public ThermalBiasSettings() {
+    public ThermalBiasSettings(int maxNumberOfRuns) {
         this.computeThermalBias = true;
         this.startPoint = 1;
-        this.endPoint = 1;
+        this.endPoint = maxNumberOfRuns;
         this.linearity = ThermalBiasLinearity.POINT;
+        
+        for(int i = this.startPoint; i <= this.endPoint; i++) {
+            this.times.put(i, 0.0);
+        }
     }
     
 }

@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javax.swing.JTable;
-import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -23,6 +25,8 @@ public class DataContainerViewer extends JTable {
     // Constants
     public static final String DESCRIPTION_COLUMN_NAME = "Run Name";
     public static final String COMMENT_COLUMN_NAME = "Comment";
+    public static final Class<?> DESCRIPTION_COLUMN_CLASS = String.class;
+    public static final Class<?> COMMENT_COLUMN_CLASS = String.class;
 
     private static String[] getHeaderStrings() {
         List<String> names = new ArrayList<>();
@@ -34,6 +38,18 @@ public class DataContainerViewer extends JTable {
         names.add(COMMENT_COLUMN_NAME);
 
         return names.toArray(new String[names.size()]);
+    }
+
+    private static Class<?>[] getHeaderClasses() {
+        List<Class<?>> classes = new ArrayList<>();
+
+        classes.add(DESCRIPTION_COLUMN_CLASS);
+        for (DataValues value : DataValues.values()) {
+            classes.add(value.getValueClass());
+        }
+        classes.add(COMMENT_COLUMN_CLASS);
+
+        return classes.toArray(new Class[classes.size()]);
     }
 
 
@@ -68,16 +84,25 @@ public class DataContainerViewer extends JTable {
 
 
     // Private Classes
-    private static class DataViewerModel extends AbstractTableModel {
+    private static class DataViewerModel extends DefaultTableModel {
 
         // Fields
         private final List<String> columnNames = Collections.unmodifiableList(Arrays.asList(DataContainerViewer.getHeaderStrings()));
+        private final List<Class<?>> columnClasses = Collections.unmodifiableList(Arrays.asList(DataContainerViewer.getHeaderClasses()));
+        private final Map<String, Integer> nameIndices;
         private final List<Object[]> data = new ArrayList<>();
 
 
         // Initializaiton
         private DataViewerModel() {
             super();
+            
+            this.nameIndices = Collections.unmodifiableMap(this.columnNames.stream()
+                    .collect(Collectors.toMap(
+                            (String name) -> name,
+                            (String name) -> columnNames.indexOf(name)
+                    ))
+            );
         }
 
 
@@ -91,7 +116,12 @@ public class DataContainerViewer extends JTable {
             for (String header : columnNames) {
                 if (!(header.equals(DESCRIPTION_COLUMN_NAME) || header.equals(COMMENT_COLUMN_NAME))) {
                     DataValues values = DataValues.getByDisplayName(header);
-                    objs[index] = data.getData().get(values);
+                    if (header.equals(DataSet.DataValues.TestPoint.getDisplayName())) {
+                        objs[index] = (int) Math.round(data.getData().get(values));
+                    }
+                    else {
+                        objs[index] = data.getData().get(values);
+                    }
                     index++;
                 }
             }
@@ -115,7 +145,17 @@ public class DataContainerViewer extends JTable {
         }
 
         @Override
+        public Class<?> getColumnClass(int col) {
+//            return this.columnClasses.get(this.columnClasses.size() - col - 1);
+            return this.columnClasses.get(col);
+        }
+
+        @Override
         public int getRowCount() {
+            if (this.data == null) {
+                // Can happen during superclass constructor.
+                return 0;
+            }
             return this.data.size();
         }
 
@@ -136,7 +176,8 @@ public class DataContainerViewer extends JTable {
 
         @Override
         public int findColumn(String columnName) {
-            return this.columnNames.indexOf(columnNames);
+//            return this.columnNames.indexOf(columnName);
+            return this.nameIndices.get(columnName);
         }
 
     }

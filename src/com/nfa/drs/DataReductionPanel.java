@@ -15,6 +15,7 @@ import com.nfa.drs.data.StudentWindTunnelFormat;
 import com.nfa.drs.data.Test;
 import com.nfa.drs.reduction.ThermalBiasSettings;
 import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasLinearity;
+import com.nfa.drs.reduction.ThermalBiasTimeTable;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -31,6 +32,8 @@ import javax.swing.JTable;
 import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
+import javax.swing.event.TableModelEvent;
+import javax.swing.filechooser.FileFilter;
 
 /**
  *
@@ -51,6 +54,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private final Property<Test> test = new Property<>();
     private final Map<String, ThermalBiasSettings> thermalBiasSettings = new HashMap<>();
     private final DataContainerViewer thermalDataView = new DataContainerViewer();
+    private final ThermalBiasTimeTable thermalTimeTable = new ThermalBiasTimeTable();
     private Defaults defaults = new Defaults();
 
 
@@ -84,6 +88,10 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.thermalViewPane.add(this.thermalDataView.getTableHeader(), BorderLayout.PAGE_START);
         this.thermalViewPane.add(this.thermalDataView, BorderLayout.CENTER);
 
+        this.thermalTimingPanel.setLayout(new BorderLayout());
+        this.thermalTimingPanel.add(this.thermalTimeTable.getTableHeader(), BorderLayout.PAGE_START);
+        this.thermalTimingPanel.add(this.thermalTimeTable, BorderLayout.CENTER);
+
         // Add Items to ComboBoxes
         this.formatCombo.removeAllItems();
         formats.keySet().stream()
@@ -110,8 +118,20 @@ public class DataReductionPanel extends javax.swing.JPanel {
                 DataReductionPanel.this.resizeThermalBiasView();
             }
         });
+        this.thermalDataView.getModel().addTableModelListener((TableModelEvent e) -> this.resizeThermalBiasView());
+        this.thermalTimeTable.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                DataReductionPanel.this.resizeThermalTimingPanel();
+            }
+        });
+        this.thermalTimeTable.getModel().addTableModelListener((TableModelEvent e) -> {
+            this.resizeThermalTimingPanel();
+            this.getCurrentThermalBiasSettings().setTimes(this.thermalTimeTable.getTimes());
+        });
 
         this.test.addPropertyChangedListener(this::resetThermalBias);
+        this.test.addPropertyChangedListener((PropertyChangedArgs<Test> e) -> this.thermalBiasItemEvent(null));
     }
 
 
@@ -119,6 +139,19 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private void importButtonActionPerformed(ActionEvent e) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setFileFilter(new FileFilter() {
+
+            @Override
+            public boolean accept(File f) {
+                return f.isDirectory() || f.toString().endsWith(".csv");
+            }
+
+            @Override
+            public String getDescription() {
+                return "CSV Files (*.csv)";
+            }
+            
+        });
         if (this.getDefaults() != null && this.getDefaults().getImportDirectory() != null) {
             chooser.setCurrentDirectory(new File(this.getDefaults().getImportDirectory()));
         }
@@ -148,12 +181,12 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.test.get().getRuns().stream()
                 .forEach((Run run) -> {
                     this.thermalBiasRunCombo.addItem(run.getName());
-                    this.thermalBiasSettings.put(run.getName(), new ThermalBiasSettings());
+                    this.thermalBiasSettings.put(run.getName(), new ThermalBiasSettings(run.getPointCount()));
                 });
     }
 
     private void thermalBiasItemEvent(ItemEvent e) {
-        if (e.getStateChange() == ItemEvent.SELECTED) {
+        if (e == null || e.getStateChange() == ItemEvent.SELECTED) {
             if (this.test.get() != null) {
                 // Load Data
                 String runName = this.thermalBiasRunCombo.getSelectedItem().toString();
@@ -167,7 +200,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
                             .forEach((Datapoint point) ->
                                     this.thermalDataView.addData(runName, point)
                             );
-                    maxRunNumber = run.getDatapoints().size();
+                    maxRunNumber = run.getPointCount();
                 }
 
                 ThermalBiasSettings tbs = this.getCurrentThermalBiasSettings();
@@ -189,14 +222,19 @@ public class DataReductionPanel extends javax.swing.JPanel {
                     this.startingPointSpinner.setValue(tbs.getStartPoint());
                     this.endingPointSpinner.setValue(tbs.getEndPoint());
                     this.biasLinearityCombo.setSelectedItem(tbs.getLinearity());
+                    this.thermalTimeTable.setTimes(tbs.getTimes());
                 }
 
                 // Update Check Box
                 if (tbs != null) {
                     this.computeThermalBiasCheckBox.setSelected(tbs.getComputeThermalBias());
                 }
+                
+                // Fire Faux Related Events
+                this.biasLinearityItemEvent(null);
+                
                 this.revalidate();
-                this.repaint();
+//                this.repaint();
             }
         }
     }
@@ -206,6 +244,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
             this.startingPointSpinner.setEnabled(true);
             this.endingPointSpinner.setEnabled(true);
             this.biasLinearityCombo.setEnabled(true);
+            this.thermalTimeTable.setEnabled(this.biasLinearityCombo.getSelectedItem().equals(ThermalBiasLinearity.TIME));
         }
         else {
             this.startingPointSpinner.setValue(1);
@@ -213,6 +252,8 @@ public class DataReductionPanel extends javax.swing.JPanel {
             this.endingPointSpinner.setValue(1);
             this.endingPointSpinner.setEnabled(false);
             this.biasLinearityCombo.setEnabled(false);
+            this.thermalTimeTable.clearSelection();
+            this.thermalTimeTable.setEnabled(false);
         }
 
         ThermalBiasSettings tbs = this.getCurrentThermalBiasSettings();
@@ -225,6 +266,15 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.thermalViewPane.setPreferredSize(new Dimension(
                 this.thermalDataView.getPreferredSize().width,
                 this.thermalDataView.getPreferredSize().height + DataReductionPanel.this.thermalDataView.getTableHeader().getHeight()
+                + this.thermalViewPane.getInsets().top
+        ));
+    }
+
+    private void resizeThermalTimingPanel() {
+        this.thermalTimingPanel.setPreferredSize(new Dimension(
+                this.thermalTimeTable.getPreferredSize().width,
+                this.thermalTimeTable.getPreferredSize().height + DataReductionPanel.this.thermalTimeTable.getTableHeader().getHeight()
+                + this.thermalTimingPanel.getInsets().top
         ));
     }
 
@@ -252,6 +302,12 @@ public class DataReductionPanel extends javax.swing.JPanel {
                 tbs.setLinearity(lin);
             }
         }
+        
+        boolean inTime = this.biasLinearityCombo.getSelectedItem().equals(ThermalBiasLinearity.TIME);
+        if (!inTime) {
+            this.thermalTimeTable.clearSelection();
+        }
+        this.thermalTimeTable.setEnabled(inTime);
     }
 
     // Designer  
@@ -291,6 +347,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
         startingPointSpinner = new javax.swing.JSpinner();
         biasLinearityLabel = new javax.swing.JLabel();
         biasLinearityCombo = new javax.swing.JComboBox();
+        thermalTimingPanel = new javax.swing.JPanel();
         reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
 
@@ -445,7 +502,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
         );
         thermalViewPaneLayout.setVerticalGroup(
             thermalViewPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 148, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
 
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -495,6 +552,29 @@ public class DataReductionPanel extends javax.swing.JPanel {
         gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 0);
         thermalPanel.add(biasLinearityCombo, gridBagConstraints);
+
+        thermalTimingPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        thermalTimingPanel.setPreferredSize(new java.awt.Dimension(925, 150));
+
+        javax.swing.GroupLayout thermalTimingPanelLayout = new javax.swing.GroupLayout(thermalTimingPanel);
+        thermalTimingPanel.setLayout(thermalTimingPanelLayout);
+        thermalTimingPanelLayout.setHorizontalGroup(
+            thermalTimingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 923, Short.MAX_VALUE)
+        );
+        thermalTimingPanelLayout.setVerticalGroup(
+            thermalTimingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 14;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        thermalPanel.add(thermalTimingPanel, gridBagConstraints);
 
         tabbedPane.addTab("Thermal Bias", thermalPanel);
 
@@ -555,6 +635,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.JComboBox thermalBiasRunCombo;
     private javax.swing.JPanel thermalPanel;
     private javax.swing.JLabel thermalRunLabel;
+    private javax.swing.JPanel thermalTimingPanel;
     private javax.swing.JPanel thermalViewPane;
     // End of variables declaration//GEN-END:variables
 }

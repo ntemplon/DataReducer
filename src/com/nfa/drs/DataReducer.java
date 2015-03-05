@@ -7,6 +7,9 @@ package com.nfa.drs;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.nfa.drs.reduction.ThermalBiasSettings;
+import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsDeserializer;
+import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsSerializer;
 import com.nfa.io.FileLocations;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -23,6 +26,13 @@ import javax.swing.UnsupportedLookAndFeelException;
  * @author Nathan Templon
  */
 public class DataReducer {
+    
+    public static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsSerializer())
+            .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsDeserializer())
+            .create();
+    
 
     /**
      * @param args the command line arguments

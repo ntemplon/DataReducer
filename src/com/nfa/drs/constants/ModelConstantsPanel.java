@@ -6,7 +6,7 @@
 package com.nfa.drs.constants;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.nfa.drs.DataReducer;
 import com.nfa.drs.constants.ModelConstants.Constants;
 import com.nfa.gui.JNumberTextField;
 import java.awt.GridBagConstraints;
@@ -60,6 +60,8 @@ public class ModelConstantsPanel extends JPanel {
     private JButton importButton;
     private JButton exportButton;
 
+    private Path defaultDirectory;
+
 
     // Properties
     public ModelConstants getModelConstants() {
@@ -94,12 +96,50 @@ public class ModelConstantsPanel extends JPanel {
                 });
     }
 
+    public final Path getDefaultDirectory() {
+        return this.defaultDirectory;
+    }
+
+    public final void setDefaultDirectory(Path directory) {
+        this.defaultDirectory = directory;
+    }
+
 
     // Initialization
     public ModelConstantsPanel() {
 
         this.initComponents();
 
+    }
+
+
+    // Public Methods
+    public void importModelConstantsFile(Path mcFile) {
+        try {
+            Gson gson = new Gson();
+            String json = Files.readAllLines(mcFile).stream()
+                    .reduce("", (String first, String second) -> first + System.lineSeparator() + second);
+            ModelConstants mcs = gson.fromJson(json, ModelConstants.class);
+
+            if (mcs != null) {
+                this.setModelConstants(mcs);
+            }
+        }
+        catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "There was an error while importing the model constants.", "Import Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void exportModelConstantsFile(Path file) {
+        ModelConstants mcs = this.getModelConstants();
+        String json = DataReducer.GSON.toJson(mcs);
+
+        try {
+            Files.write(file, Arrays.asList(new String[]{json}));
+        }
+        catch (IOException ex) {
+
+        }
     }
 
 
@@ -183,22 +223,18 @@ public class ModelConstantsPanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(JSON_FILTER);
 
+        Path defaultDir = this.getDefaultDirectory();
+        if (defaultDir != null && Files.exists(defaultDir)) {
+            chooser.setCurrentDirectory(defaultDir.toFile());
+            Path mcFile = defaultDir.resolve(ModelConstants.DEFAULT_FILE_NAME);
+            if (Files.exists(mcFile)) {
+                chooser.setSelectedFile(mcFile.toFile());
+            }
+        }
+
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             Path file = chooser.getSelectedFile().toPath();
-
-            try {
-                Gson gson = new Gson();
-                String json = Files.readAllLines(file).stream()
-                        .reduce("", (String first, String second) -> first + System.lineSeparator() + second);
-                ModelConstants mcs = gson.fromJson(json, ModelConstants.class);
-
-                if (mcs != null) {
-                    this.setModelConstants(mcs);
-                }
-            }
-            catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "There was an error while importing the model constants.", "Import Error", JOptionPane.ERROR_MESSAGE);
-            }
+            this.importModelConstantsFile(file);
         }
     }
 
@@ -206,24 +242,18 @@ public class ModelConstantsPanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(JSON_FILTER);
 
+        Path defaultDir = this.getDefaultDirectory();
+        if (defaultDir != null && Files.exists(defaultDir)) {
+            chooser.setCurrentDirectory(defaultDir.toFile());
+        }
+        chooser.setSelectedFile(new File(chooser.getCurrentDirectory(), ModelConstants.DEFAULT_FILE_NAME));
+
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             Path file = chooser.getSelectedFile().toPath();
 
             if (chooser.getFileFilter().equals(JSON_FILTER) && !file.toString().endsWith(".json")) {
                 file = Paths.get(file.toString() + ".json");
-            }
-
-            ModelConstants mcs = this.getModelConstants();
-            Gson gson = new GsonBuilder()
-                    .setPrettyPrinting()
-                    .create();
-            String json = gson.toJson(mcs);
-
-            try {
-                Files.write(file, Arrays.asList(new String[]{json}), StandardOpenOption.CREATE);
-            }
-            catch (IOException ex) {
-
+                this.exportModelConstantsFile(file);
             }
         }
     }

@@ -17,6 +17,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Nathan Templon
  */
 public class ModelConstants {
+    
+    // Constants
+    public static final String DEFAULT_FILE_NAME = "modelconstants.json";
+    
 
     // Enumerations
     public enum Constants {

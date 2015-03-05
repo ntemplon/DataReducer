@@ -66,7 +66,8 @@ public class DataContainerViewer extends JTable {
 
     // Private Methods
     private void initComponent() {
-        this.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN;
+//        this.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN;
+        this.autoResizeMode = JTable.AUTO_RESIZE_OFF;
         
         TableColumnModel cModel = this.getColumnModel();
         for (int col = 0; col < this.getColumnCount(); col++) {

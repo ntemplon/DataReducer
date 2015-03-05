@@ -6,17 +6,15 @@
 package com.nfa.drs.data;
 
 import com.nfa.drs.data.DataSet.DataValues;
-import java.awt.Component;
+import com.nfa.gui.TableColumnAdjuster;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.swing.JTable;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumnModel;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -25,7 +23,10 @@ import javax.swing.table.TableColumnModel;
 public class DataContainerViewer extends JTable {
 
     // Constants
-    public static final String DESCRIPTION_COLUMN_NAME = "Description";
+    public static final String DESCRIPTION_COLUMN_NAME = "Run Name";
+    public static final String COMMENT_COLUMN_NAME = "Comment";
+    public static final Class<?> DESCRIPTION_COLUMN_CLASS = String.class;
+    public static final Class<?> COMMENT_COLUMN_CLASS = String.class;
 
     private static String[] getHeaderStrings() {
         List<String> names = new ArrayList<>();
@@ -34,69 +35,106 @@ public class DataContainerViewer extends JTable {
         for (DataValues value : DataValues.values()) {
             names.add(value.getDisplayName());
         }
+        names.add(COMMENT_COLUMN_NAME);
 
         return names.toArray(new String[names.size()]);
     }
 
+    private static Class<?>[] getHeaderClasses() {
+        List<Class<?>> classes = new ArrayList<>();
+
+        classes.add(DESCRIPTION_COLUMN_CLASS);
+        for (DataValues value : DataValues.values()) {
+            classes.add(value.getValueClass());
+        }
+        classes.add(COMMENT_COLUMN_CLASS);
+
+        return classes.toArray(new Class[classes.size()]);
+    }
+
 
     // Fields
-    private final List<DataContainer> dataContainers = new ArrayList<>();
-    private final List<DataContainer> containerAccess = Collections.unmodifiableList(this.dataContainers);
-    private final Map<String, DataContainer> byName = new HashMap<>();
     private final DataViewerModel model;
+    private final TableColumnAdjuster tca;
 
 
     // Initialization
     public DataContainerViewer() {
         this(new DataViewerModel());
-        this.initComponent();
     }
 
     private DataContainerViewer(DataViewerModel model) {
         super(model);
         this.model = model;
+        this.tca = new TableColumnAdjuster(this);
+        this.tca.adjustColumns();
     }
 
 
     // Public Methods
     public void addData(String name, DataContainer data) {
         this.model.addData(name, data);
+        this.tca.adjustColumns();
     }
 
-
-    // Private Methods
-    private void initComponent() {
-//        this.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN;
-        this.autoResizeMode = JTable.AUTO_RESIZE_OFF;
-        
-        TableColumnModel cModel = this.getColumnModel();
-        for (int col = 0; col < this.getColumnCount(); col++) {
-            TableCellRenderer render = this.getCellRenderer(0, col);
-            Component comp = this.prepareRenderer(render, 0, col);
-            cModel.getColumn(col).setPreferredWidth(comp.getPreferredSize().width);
-        }
+    public void clear() {
+        this.model.clear();
+        tca.adjustColumns();
     }
 
 
     // Private Classes
-    private static class DataViewerModel extends AbstractTableModel {
+    private static class DataViewerModel extends DefaultTableModel {
 
         // Fields
-        private final List<String> rowNames = new ArrayList<>();
-        private final List<DataContainer> data = new ArrayList<>();
         private final List<String> columnNames = Collections.unmodifiableList(Arrays.asList(DataContainerViewer.getHeaderStrings()));
+        private final List<Class<?>> columnClasses = Collections.unmodifiableList(Arrays.asList(DataContainerViewer.getHeaderClasses()));
+        private final Map<String, Integer> nameIndices;
+        private final List<Object[]> data = new ArrayList<>();
 
 
         // Initializaiton
         private DataViewerModel() {
             super();
+            
+            this.nameIndices = Collections.unmodifiableMap(this.columnNames.stream()
+                    .collect(Collectors.toMap(
+                            (String name) -> name,
+                            (String name) -> columnNames.indexOf(name)
+                    ))
+            );
         }
 
 
         // Public Methods
         public void addData(String name, DataContainer data) {
-            this.rowNames.add(name);
-            this.data.add(data);
+            Object[] objs = new Object[this.columnNames.size()];
+
+            int index = 0;
+            objs[index] = name;
+            index++;
+            for (String header : columnNames) {
+                if (!(header.equals(DESCRIPTION_COLUMN_NAME) || header.equals(COMMENT_COLUMN_NAME))) {
+                    DataValues values = DataValues.getByDisplayName(header);
+                    if (header.equals(DataSet.DataValues.TestPoint.getDisplayName())) {
+                        objs[index] = (int) Math.round(data.getData().get(values));
+                    }
+                    else {
+                        objs[index] = data.getData().get(values);
+                    }
+                    index++;
+                }
+            }
+            objs[index] = data.getComment();
+
+            this.data.add(objs);
+
+            this.fireTableRowsInserted(this.data.size() - 1, this.data.size() - 1);
+        }
+
+        public void clear() {
+            this.data.clear();
+            this.fireTableDataChanged();
         }
 
 
@@ -107,7 +145,17 @@ public class DataContainerViewer extends JTable {
         }
 
         @Override
+        public Class<?> getColumnClass(int col) {
+//            return this.columnClasses.get(this.columnClasses.size() - col - 1);
+            return this.columnClasses.get(col);
+        }
+
+        @Override
         public int getRowCount() {
+            if (this.data == null) {
+                // Can happen during superclass constructor.
+                return 0;
+            }
             return this.data.size();
         }
 
@@ -118,20 +166,7 @@ public class DataContainerViewer extends JTable {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            String header = this.getColumnName(columnIndex);
-            if (header.equals(DataContainerViewer.DESCRIPTION_COLUMN_NAME)) {
-                if (rowNames.isEmpty()) {
-                    return "";
-                }
-                return rowNames.get(columnIndex);
-            }
-            else {
-                if (data.isEmpty()) {
-                    return 0.0;
-                }
-                DataValues dataValue = DataValues.getByDisplayName(header);
-                return this.data.get(rowIndex).getData().get(dataValue);
-            }
+            return this.data.get(rowIndex)[columnIndex];
         }
 
         @Override
@@ -141,7 +176,8 @@ public class DataContainerViewer extends JTable {
 
         @Override
         public int findColumn(String columnName) {
-            return this.columnNames.indexOf(columnNames);
+//            return this.columnNames.indexOf(columnName);
+            return this.nameIndices.get(columnName);
         }
 
     }

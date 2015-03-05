@@ -11,6 +11,16 @@ package com.nfa.drs;
  */
 public class DataReductionFrame extends javax.swing.JFrame {
 
+    // Properties
+    public final Defaults getDefaults() {
+        return this.dataReductionPanel.getDefaults();
+    }
+    
+    public final void setDefaults(Defaults defaults) {
+        this.dataReductionPanel.setDefaults(defaults);
+    }
+    
+    
     /**
      * Creates new form DataReductionFrame
      */

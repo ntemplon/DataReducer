@@ -22,6 +22,10 @@ import java.util.Map;
  */
 public class TareSettings {
     
+    // Constants
+    public static final String DEFAULT_TARE_SETTINGS_FILE = "tares.json";
+    
+    
     // Fields
     private final Map<String, TareSettingsEntry> settings = new HashMap<>();
     private final transient Map<String, TareSettingsEntry> settingsAcces = Collections.unmodifiableMap(this.settings);

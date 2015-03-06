@@ -137,6 +137,10 @@ public class DataReductionPanel extends javax.swing.JPanel {
         for (ThermalBiasLinearity lin : ThermalBiasLinearity.values()) {
             this.biasLinearityCombo.addItem(lin);
         }
+        
+        this.tareRunComboBox.removeAllItems();
+        this.staticTareList.setListData(new Object[0]);
+        this.dynamicTareList.setListData(new Object[0]);
 
         // Add Listeners
         this.importButton.addActionListener(this::importButtonActionPerformed);
@@ -150,6 +154,8 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.tareRunComboBox.addItemListener(this::tareRunComboBoxChange);
         this.staticTareList.addListSelectionListener(this::staticTareListEvent);
         this.dynamicTareList.addListSelectionListener(this::dynamicTareListEvent);
+        this.tareImportButton.addActionListener(this::importTareSettingsAction);
+        this.tareExportButton.addActionListener(this::exportTareSettingsAction);
 
         this.thermalDataView.addComponentListener(new ComponentAdapter() {
             @Override
@@ -467,8 +473,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
     }
 
     private void refreshTareSettings() {
-        this.staticTareList.removeAll();
-        this.dynamicTareList.removeAll();
         if (this.test.get() != null && this.tareRunComboBox.getSelectedItem() != null) {
             String runName = this.tareRunComboBox.getSelectedItem().toString();
             List<String> tareRuns = new ArrayList<>();
@@ -544,6 +548,42 @@ public class DataReductionPanel extends javax.swing.JPanel {
                     }
                 }
             }
+        }
+    }
+    
+    private void importTareSettingsAction(ActionEvent e) {
+        
+    }
+    
+    private void exportTareSettingsAction(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(JSON_FILTER);
+
+        Path defaultDir = Paths.get(this.getDefaults().getImportDirectory());
+        if (defaultDir != null && Files.exists(defaultDir)) {
+            chooser.setCurrentDirectory(defaultDir.toFile());
+        }
+        chooser.setSelectedFile(new File(chooser.getCurrentDirectory(), TareSettings.DEFAULT_TARE_SETTINGS_FILE));
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            Path file = chooser.getSelectedFile().toPath();
+
+            if (chooser.getFileFilter().equals(JSON_FILTER) && !file.toString().endsWith(".json")) {
+                file = Paths.get(file.toString() + ".json");
+            }
+
+            this.exportTareSettings(file);
+        }
+    }
+    
+    private void exportTareSettings(Path file) {
+        String json = DataReducer.GSON.toJson(this.tareSettings);
+
+        try {
+            Files.write(file, Arrays.asList(new String[]{json}));
+        }
+        catch (IOException ex) {
+
         }
     }
 

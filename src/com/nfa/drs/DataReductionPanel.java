@@ -20,6 +20,8 @@ import com.nfa.drs.data.Test;
 import com.nfa.drs.reduction.ThermalBiasSettings;
 import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasLinearity;
 import com.nfa.drs.reduction.ThermalBiasTimeTable;
+import com.nfa.drs.reduction.tare.TareSettings;
+import com.nfa.drs.reduction.tare.TareSettings.TareSettingsEntry;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -31,16 +33,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
 import javax.swing.filechooser.FileFilter;
 
@@ -49,6 +55,10 @@ import javax.swing.filechooser.FileFilter;
  * @author Nathan Templon
  */
 public class DataReductionPanel extends javax.swing.JPanel {
+
+    // Constants
+    public static final String NO_TARE_KEY = "NONE";
+
 
     // Static Fields
     private static final Map<String, DataFormat> formats = new HashMap<>();
@@ -79,6 +89,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private final DataContainerViewer thermalDataView = new DataContainerViewer();
     private final ThermalBiasTimeTable thermalTimeTable = new ThermalBiasTimeTable();
     private Defaults defaults = new Defaults();
+    private TareSettings tareSettings = new TareSettings();
 
 
     // Properties
@@ -136,6 +147,9 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.biasLinearityCombo.addItemListener(this::biasLinearityItemEvent);
         this.importThermalButton.addActionListener(this::importBiasButtonAction);
         this.exportThermalButton.addActionListener(this::exportBiasButtonAction);
+        this.tareRunComboBox.addItemListener(this::tareRunComboBoxChange);
+        this.staticTareList.addListSelectionListener(this::staticTareListEvent);
+        this.dynamicTareList.addListSelectionListener(this::dynamicTareListEvent);
 
         this.thermalDataView.addComponentListener(new ComponentAdapter() {
             @Override
@@ -193,13 +207,17 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.getDefaults().setImportDirectory(dir.toString());
         DataFormat format = formats.get(this.formatCombo.getSelectedItem().toString());
         this.test.set(format.fromDirectory(dir));
+
+        // Adding the Runs to Various Things
+        this.tareRunComboBox.removeAllItems();
         this.test.get().getRuns().stream()
-                .forEach((Run run) ->
-                        run.getDatapoints().stream()
-                        .forEach((point) ->
-                                this.dataViewer.addData(run.getName(), point)
-                        )
-                );
+                .forEach((Run run) -> {
+                    run.getDatapoints().stream()
+                    .forEach((point) -> {
+                        this.dataViewer.addData(run.getName(), point);
+                    });
+                    this.tareRunComboBox.addItem(run.getName());
+                });
 
         // Attempt to Import Model Constants
         this.modelConstantsPanel.setDefaultDirectory(dir);
@@ -214,7 +232,16 @@ public class DataReductionPanel extends javax.swing.JPanel {
             this.importThermalBias(tbFile);
         }
 
+        // Attempt to Import Tare Settings (WIP)
+        this.tareSettings.setAllSettings(new HashMap<>());
+        this.test.get().getRuns().stream()
+                .forEach((Run run) -> this.tareSettings.setSettings(run.getName(), new TareSettingsEntry()));
+        if (this.tareRunComboBox.getItemCount() > 0) {
+            this.tareRunComboBox.setSelectedIndex(0);
+        }
+
         this.resizeThermalBiasView();
+        this.refreshTareSettings();
     }
 
     private void resetThermalBias(PropertyChangedArgs<Test> e) {
@@ -435,6 +462,91 @@ public class DataReductionPanel extends javax.swing.JPanel {
         }
     }
 
+    private void tareRunComboBoxChange(ItemEvent e) {
+        this.refreshTareSettings();
+    }
+
+    private void refreshTareSettings() {
+        this.staticTareList.removeAll();
+        this.dynamicTareList.removeAll();
+        if (this.test.get() != null && this.tareRunComboBox.getSelectedItem() != null) {
+            String runName = this.tareRunComboBox.getSelectedItem().toString();
+            List<String> tareRuns = new ArrayList<>();
+            tareRuns.add(NO_TARE_KEY);
+            tareRuns.addAll(this.test.get().getRuns().stream()
+                    .filter((Run run) -> !run.getName().equals(runName))
+                    .map((Run run) -> run.getName())
+                    .collect(Collectors.toList()));
+
+            Object[] listDataArray = tareRuns.toArray();
+            this.staticTareList.setListData(listDataArray);
+            this.dynamicTareList.setListData(listDataArray);
+
+            TareSettingsEntry tse = this.tareSettings.getSettings(runName);
+            if (tse != null) {
+                String staticTare = tse.getStaticTare();
+                if (staticTare != null) {
+                    this.staticTareList.setSelectedValue(staticTare, true);
+                }
+                else {
+                    this.staticTareList.setSelectedValue(NO_TARE_KEY, true);
+                }
+
+                String dynamicTare = tse.getDynamicTare();
+                if (dynamicTare != null) {
+                    this.dynamicTareList.setSelectedValue(dynamicTare, true);
+                }
+                else {
+                    this.dynamicTareList.setSelectedValue(NO_TARE_KEY, true);
+                }
+            }
+        }
+    }
+
+    private void staticTareListEvent(ListSelectionEvent e) {
+        if (e.getValueIsAdjusting()) {
+            return;
+        }
+
+        if (this.tareRunComboBox.getSelectedItem() != null) {
+            String runName = this.tareRunComboBox.getSelectedItem().toString();
+            TareSettingsEntry tse = this.tareSettings.getSettings(runName);
+            if (tse != null) {
+                Object item = this.staticTareList.getSelectedValue();
+                if (item != null) {
+                    if (item.equals(NO_TARE_KEY)) {
+                        tse.setStaticTare(null);
+                    }
+                    else {
+                        tse.setStaticTare(item.toString());
+                    }
+                }
+            }
+        }
+    }
+
+    private void dynamicTareListEvent(ListSelectionEvent e) {
+        if (e.getValueIsAdjusting()) {
+            return;
+        }
+
+        if (this.tareRunComboBox.getSelectedItem() != null) {
+            String runName = this.tareRunComboBox.getSelectedItem().toString();
+            TareSettingsEntry tse = this.tareSettings.getSettings(runName);
+            if (tse != null) {
+                Object item = this.dynamicTareList.getSelectedValue();
+                if (item != null) {
+                    if (item.equals(NO_TARE_KEY)) {
+                        tse.setDynamicTare(null);
+                    }
+                    else {
+                        tse.setDynamicTare(item.toString());
+                    }
+                }
+            }
+        }
+    }
+
     // Designer  
     /**
      * This method is called from within the constructor to
@@ -459,6 +571,21 @@ public class DataReductionPanel extends javax.swing.JPanel {
         botGlue = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
         modelConstantsLabel = new javax.swing.JLabel();
         modelConstantsPanel = new com.nfa.drs.constants.ModelConstantsPanel();
+        tarePanel = new javax.swing.JPanel();
+        tareRunLabel = new javax.swing.JLabel();
+        tareVerticalFiller = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 32767));
+        tareRunComboBox = new javax.swing.JComboBox();
+        staticTareLabel = new javax.swing.JLabel();
+        staticTareScrollPane = new javax.swing.JScrollPane();
+        staticTareList = new javax.swing.JList();
+        dynamicTareLabel = new javax.swing.JLabel();
+        dynamicTareScrollPane = new javax.swing.JScrollPane();
+        dynamicTareList = new javax.swing.JList();
+        jPanel2 = new javax.swing.JPanel();
+        tareExportButton = new javax.swing.JButton();
+        tareImportButton = new javax.swing.JButton();
+        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
+        tareHorizontalFiller = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         thermalPanel = new javax.swing.JPanel();
         thermalRunLabel = new javax.swing.JLabel();
         thermalBiasRunCombo = new javax.swing.JComboBox();
@@ -553,7 +680,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
         gridBagConstraints.gridy = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
         mcConfigPanel.add(modelConstantsLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -564,9 +690,127 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
         tabbedPane.addTab("Model Constants", mcConfigPanel);
 
+        tarePanel.setLayout(new java.awt.GridBagLayout());
+
+        tareRunLabel.setText("Run");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        tarePanel.add(tareRunLabel, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 100;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weighty = 1.0;
+        tarePanel.add(tareVerticalFiller, gridBagConstraints);
+
+        tareRunComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        tareRunComboBox.setPreferredSize(new java.awt.Dimension(200, 24));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        tarePanel.add(tareRunComboBox, gridBagConstraints);
+
+        staticTareLabel.setText("Static Tare");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 10;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(20, 5, 0, 5);
+        tarePanel.add(staticTareLabel, gridBagConstraints);
+
+        staticTareScrollPane.setPreferredSize(new java.awt.Dimension(200, 300));
+
+        staticTareList.setModel(new javax.swing.AbstractListModel() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public Object getElementAt(int i) { return strings[i]; }
+        });
+        staticTareScrollPane.setViewportView(staticTareList);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        tarePanel.add(staticTareScrollPane, gridBagConstraints);
+
+        dynamicTareLabel.setText("Dynamic Tare");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 10;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(20, 5, 0, 5);
+        tarePanel.add(dynamicTareLabel, gridBagConstraints);
+
+        dynamicTareScrollPane.setPreferredSize(new java.awt.Dimension(200, 300));
+
+        dynamicTareList.setModel(new javax.swing.AbstractListModel() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public Object getElementAt(int i) { return strings[i]; }
+        });
+        dynamicTareScrollPane.setViewportView(dynamicTareList);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
+        tarePanel.add(dynamicTareScrollPane, gridBagConstraints);
+
+        jPanel2.setPreferredSize(new java.awt.Dimension(20, 25));
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        tareExportButton.setText("Export");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_END;
+        gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
+        jPanel2.add(tareExportButton, gridBagConstraints);
+
+        tareImportButton.setText("Import");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_END;
+        jPanel2.add(tareImportButton, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        jPanel2.add(filler2, gridBagConstraints);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 20;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        tarePanel.add(jPanel2, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 100;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridheight = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        tarePanel.add(tareHorizontalFiller, gridBagConstraints);
+
+        tabbedPane.addTab("Tares", tarePanel);
+
         thermalPanel.setLayout(new java.awt.GridBagLayout());
 
-        thermalRunLabel.setText("Select Run");
+        thermalRunLabel.setText("Run");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
@@ -782,15 +1026,20 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.JScrollPane dataScrollPane;
     private javax.swing.JPanel dataTab;
     private com.nfa.drs.data.DataContainerViewer dataViewer;
+    private javax.swing.JLabel dynamicTareLabel;
+    private javax.swing.JList dynamicTareList;
+    private javax.swing.JScrollPane dynamicTareScrollPane;
     private javax.swing.JLabel endingPointLabel;
     private javax.swing.JSpinner endingPointSpinner;
     private javax.swing.JButton exportThermalButton;
     private javax.swing.Box.Filler filler1;
+    private javax.swing.Box.Filler filler2;
     private javax.swing.JComboBox formatCombo;
     private javax.swing.JButton importButton;
     private javax.swing.JButton importThermalButton;
     private javax.swing.JLabel inputFormatLabel;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel mcConfigPanel;
     private javax.swing.JLabel modelConstantsLabel;
     private com.nfa.drs.constants.ModelConstantsPanel modelConstantsPanel;
@@ -798,7 +1047,17 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.Box.Filler startEndStrut;
     private javax.swing.JLabel startingPointLabel;
     private javax.swing.JSpinner startingPointSpinner;
+    private javax.swing.JLabel staticTareLabel;
+    private javax.swing.JList staticTareList;
+    private javax.swing.JScrollPane staticTareScrollPane;
     private javax.swing.JTabbedPane tabbedPane;
+    private javax.swing.JButton tareExportButton;
+    private javax.swing.Box.Filler tareHorizontalFiller;
+    private javax.swing.JButton tareImportButton;
+    private javax.swing.JPanel tarePanel;
+    private javax.swing.JComboBox tareRunComboBox;
+    private javax.swing.JLabel tareRunLabel;
+    private javax.swing.Box.Filler tareVerticalFiller;
     private javax.swing.Box.Filler thermalBiasGlue;
     private javax.swing.JComboBox thermalBiasRunCombo;
     private javax.swing.JPanel thermalPanel;

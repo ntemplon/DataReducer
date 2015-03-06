@@ -10,6 +10,8 @@ import com.google.gson.GsonBuilder;
 import com.nfa.drs.reduction.ThermalBiasSettings;
 import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsDeserializer;
 import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsSerializer;
+import com.nfa.drs.reduction.tare.TareSettings;
+import com.nfa.drs.reduction.tare.TareSettings.TareSettingsSerializer;
 import com.nfa.io.FileLocations;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -31,6 +33,7 @@ public class DataReducer {
             .setPrettyPrinting()
             .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsSerializer())
             .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsDeserializer())
+            .registerTypeAdapter(TareSettings.class, new TareSettingsSerializer())
             .create();
     
 

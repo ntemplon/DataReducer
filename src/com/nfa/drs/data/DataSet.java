@@ -5,7 +5,6 @@
  */
 package com.nfa.drs.data;
 
-import static com.nfa.drs.data.DataSet.DataValues.TestPoint;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,18 +20,18 @@ public class DataSet {
 
     // Enumerations
     public enum DataValues {
-        TestPoint("Test Point", Integer.class),
-        AngleOfAttack("Angle of Attack (deg)", Double.class),
-        Lift("Lift (lbf)", Double.class),
-        Drag("Drag (lbf)", Double.class),
-        PitchMoment("Pitching Moment (ft-lbf)", Double.class),
-        DynamicPressure("Q (psf)", Double.class);
-        
+
+        AngleOfAttack("Angle of Attack (deg)", Double.class, false),
+        Lift("Lift (lbf)", Double.class, true),
+        Drag("Drag (lbf)", Double.class, true),
+        PitchMoment("Pitching Moment (ft-lbf)", Double.class, true),
+        DynamicPressure("Q (psf)", Double.class, false);
+
         // Static Fields
         private static final Map<String, DataValues> byDisplayName = new HashMap<>();
         private static final Lock bdnLock = new ReentrantLock();
 
-        
+
         // Static Methods
         public static DataValues getByDisplayName(String displayName) {
             if (byDisplayName.isEmpty()) {
@@ -54,41 +53,41 @@ public class DataSet {
             return byDisplayName.get(displayName);
         }
 
-        
+
         // Fields
         private final String displayName;
         private final Class<?> valueClass;
-        
-        
+        private final boolean isLoad;
+
+
         // Properties
         public final String getDisplayName() {
             return this.displayName;
         }
-        
+
         public final Class<?> getValueClass() {
             return this.valueClass;
         }
         
-        
+        public final boolean isLoad() {
+            return this.isLoad;
+        }
+
+
         // Initialization
-        DataValues(String displayName, Class<?> valueClass) {
+        DataValues(String displayName, Class<?> valueClass, boolean isLoad) {
             this.displayName = displayName;
             this.valueClass = valueClass;
+            this.isLoad = isLoad;
         }
     }
 
 
     // Fields
     private final Map<DataValues, Double> data;
-    
-    
+
+
     // Properties
-    public final void setPointNumber(int pointNumber) {
-        this.data.put(TestPoint, new Double(pointNumber));
-    }
-    
-    
-    // Public Methods
     public final double get(DataValues item) {
         Double val = this.data.get(item);
         if (val != null) {
@@ -100,11 +99,38 @@ public class DataSet {
 
     // Initialization
     public DataSet(Map<DataValues, Double> data) {
-        this.data = data.keySet().stream()
+        this.data = new HashMap<>();
+        this.data.putAll(data);
+    }
+
+    public DataSet() {
+        this(Arrays.asList(DataValues.values()).stream()
                 .collect(Collectors.toMap(
-                        (DataValues dataVal) -> dataVal,
-                        (DataValues dataVal) -> data.get(dataVal)
-                ));
+                                (DataValues values) -> values,
+                                (DataValues values) -> 0.0
+                        )
+                )
+        );
+    }
+    
+    
+    // Public Methods
+    public DataSet plus(DataSet other) {
+        return new DataSet(Arrays.asList(DataValues.values()).parallelStream()
+                .collect(Collectors.toMap(
+                        (DataValues value) -> value,
+                        (DataValues value) -> this.get(value) + other.get(value)
+                ))
+        );
+    }
+    
+    public DataSet minus(DataSet other) {
+        return new DataSet(Arrays.asList(DataValues.values()).parallelStream()
+                .collect(Collectors.toMap(
+                        (DataValues value) -> value,
+                        (DataValues value) -> this.get(value) - other.get(value)
+                ))
+        );
     }
 
 }

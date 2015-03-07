@@ -5,9 +5,11 @@
  */
 package com.nfa.drs.reduction.tare;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.nfa.drs.DataReducer;
@@ -15,6 +17,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  *
@@ -89,7 +92,7 @@ public class TareSettings {
         }
         
         public TareSettingsEntry() {
-            this(null, null);
+            this("", "");
         }
         
     }
@@ -102,11 +105,30 @@ public class TareSettings {
             JsonObject root = new JsonObject();
             
             src.getAllSettings().keySet().stream()
-                    .forEach((String runName) -> root.add(runName, new JsonPrimitive(DataReducer.GSON.toJson(src.getSettings(runName)))));
+                    .forEach((String runName) -> root.add(runName, DataReducer.GSON.toJsonTree(src.getSettings(runName))));
             
             return root;
         }
         
+    }
+    
+    
+    public static class TareSettingsDeserializer implements JsonDeserializer<TareSettings> {
+
+        @Override
+        public TareSettings deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            JsonObject root = json.getAsJsonObject();
+            
+            TareSettings settings = new TareSettings();
+            root.entrySet().stream()
+                    .forEach((Entry<String, JsonElement> entry) -> {
+                        String name = entry.getKey();
+                        TareSettingsEntry tse = DataReducer.GSON.fromJson(root.get(name), TareSettingsEntry.class);
+                        settings.setSettings(name, tse);
+                    });
+            
+            return settings;
+        }
     }
     
 }

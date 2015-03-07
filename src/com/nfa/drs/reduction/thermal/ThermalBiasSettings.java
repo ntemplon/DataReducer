@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.nfa.drs.reduction;
+package com.nfa.drs.reduction.thermal;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -30,8 +30,6 @@ public class ThermalBiasSettings {
     public static final String DEFAULT_FILE_NAME = "thermalbias.json";
     private static final String TIMES_KEY = "times";
     private static final String COMPUTE_THERMAL_BIAS_KEY = "compute-thermal-bias";
-    private static final String START_POINT_KEY = "start-point";
-    private static final String END_POINT_KEY = "end-point";
     private static final String THERMAL_BIAS_LINEARITY_KEY = "linearity";
 
 
@@ -65,10 +63,9 @@ public class ThermalBiasSettings {
     // Fields
     private final Map<Integer, Double> times = new HashMap<>();
     private final transient Map<Integer, Double> timesAccess = Collections.unmodifiableMap(this.times);
+    private final int pointCount;
 
     private boolean computeThermalBias;
-    private int startPoint;
-    private int endPoint;
     private ThermalBiasLinearity linearity;
 
 
@@ -85,34 +82,6 @@ public class ThermalBiasSettings {
      */
     public void setComputeThermalBias(boolean computeThermalBias) {
         this.computeThermalBias = computeThermalBias;
-    }
-
-    /**
-     * @return the startPoint
-     */
-    public int getStartPoint() {
-        return startPoint;
-    }
-
-    /**
-     * @param startPoint the startPoint to set
-     */
-    public void setStartPoint(int startPoint) {
-        this.startPoint = startPoint;
-    }
-
-    /**
-     * @return the endPoint
-     */
-    public int getEndPoint() {
-        return endPoint;
-    }
-
-    /**
-     * @param endPoint the endPoint to set
-     */
-    public void setEndPoint(int endPoint) {
-        this.endPoint = endPoint;
     }
 
     /**
@@ -149,16 +118,19 @@ public class ThermalBiasSettings {
         this.times.clear();
         this.times.putAll(times);
     }
+    
+    public int getPointCount() {
+        return this.pointCount;
+    }
 
 
     // Initialization
-    public ThermalBiasSettings(int maxNumberOfRuns) {
+    public ThermalBiasSettings(int pointCount) {
         this.computeThermalBias = true;
-        this.startPoint = 1;
-        this.endPoint = maxNumberOfRuns;
+        this.pointCount = pointCount;
         this.linearity = ThermalBiasLinearity.POINT;
 
-        for (int i = this.startPoint; i <= this.endPoint; i++) {
+        for (int i = 1; i <= pointCount; i++) {
             this.times.put(i, 0.0);
         }
     }
@@ -181,8 +153,6 @@ public class ThermalBiasSettings {
 
             // Primitives
             obj.add(COMPUTE_THERMAL_BIAS_KEY, new JsonPrimitive(src.getComputeThermalBias()));
-            obj.add(START_POINT_KEY, new JsonPrimitive(src.getStartPoint()));
-            obj.add(END_POINT_KEY, new JsonPrimitive(src.getEndPoint()));
             obj.add(THERMAL_BIAS_LINEARITY_KEY, new JsonPrimitive(src.getLinearity().getValueString()));
 
             return obj;
@@ -207,8 +177,6 @@ public class ThermalBiasSettings {
             
             tbs.setTimes(timeMap);
             tbs.setComputeThermalBias(src.get(COMPUTE_THERMAL_BIAS_KEY).getAsBoolean());
-            tbs.setStartPoint(src.get(START_POINT_KEY).getAsInt());
-            tbs.setEndPoint(src.get(END_POINT_KEY).getAsInt());
             tbs.setLinearity(ThermalBiasLinearity.valueOf(src.get(THERMAL_BIAS_LINEARITY_KEY).getAsString()));
             
             return tbs;

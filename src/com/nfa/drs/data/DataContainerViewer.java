@@ -23,15 +23,18 @@ import javax.swing.table.DefaultTableModel;
 public class DataContainerViewer extends JTable {
 
     // Constants
+    public static final String TEST_POINT_COLUMN_NAME = "Test Point";
     public static final String DESCRIPTION_COLUMN_NAME = "Run Name";
     public static final String COMMENT_COLUMN_NAME = "Comment";
     public static final Class<?> DESCRIPTION_COLUMN_CLASS = String.class;
     public static final Class<?> COMMENT_COLUMN_CLASS = String.class;
+    public static final Class<?> TEST_POINT_COLUMN_CLASS = Integer.class;
 
     private static String[] getHeaderStrings() {
         List<String> names = new ArrayList<>();
 
         names.add(DESCRIPTION_COLUMN_NAME);
+        names.add(TEST_POINT_COLUMN_NAME);
         for (DataValues value : DataValues.values()) {
             names.add(value.getDisplayName());
         }
@@ -44,6 +47,7 @@ public class DataContainerViewer extends JTable {
         List<Class<?>> classes = new ArrayList<>();
 
         classes.add(DESCRIPTION_COLUMN_CLASS);
+        classes.add(TEST_POINT_COLUMN_CLASS);
         for (DataValues value : DataValues.values()) {
             classes.add(value.getValueClass());
         }
@@ -68,6 +72,8 @@ public class DataContainerViewer extends JTable {
         this.model = model;
         this.tca = new TableColumnAdjuster(this);
         this.tca.adjustColumns();
+        
+        this.getTableHeader().setReorderingAllowed(false);
     }
 
 
@@ -116,8 +122,13 @@ public class DataContainerViewer extends JTable {
             for (String header : columnNames) {
                 if (!(header.equals(DESCRIPTION_COLUMN_NAME) || header.equals(COMMENT_COLUMN_NAME))) {
                     DataValues values = DataValues.getByDisplayName(header);
-                    if (header.equals(DataSet.DataValues.TestPoint.getDisplayName())) {
-                        objs[index] = (int) Math.round(data.getData().get(values));
+                    if (header.equals(TEST_POINT_COLUMN_NAME)) {
+                        if (data instanceof Datapoint) {
+                            objs[index] = ((Datapoint) data).getPointNumber();
+                        }
+                        else {
+                            objs[index] = 0;
+                        }
                     }
                     else {
                         objs[index] = data.getData().get(values);
@@ -146,7 +157,6 @@ public class DataContainerViewer extends JTable {
 
         @Override
         public Class<?> getColumnClass(int col) {
-//            return this.columnClasses.get(this.columnClasses.size() - col - 1);
             return this.columnClasses.get(col);
         }
 

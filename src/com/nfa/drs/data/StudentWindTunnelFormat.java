@@ -153,7 +153,7 @@ public class StudentWindTunnelFormat implements DataFormat {
             comment = parts[COMMENT_INDEX];
         }
 
-        return new Datapoint(ds, comment);
+        return new Datapoint(0, ds, comment);
     }
 
 

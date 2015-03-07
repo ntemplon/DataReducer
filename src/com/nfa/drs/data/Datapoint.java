@@ -15,6 +15,8 @@ public class Datapoint implements DataContainer {
     private final DataSet data;
     private final String comment;
     
+    private int pointNumber; 
+    
     
     // Properties
     @Override
@@ -27,20 +29,25 @@ public class Datapoint implements DataContainer {
         return this.comment;
     }
     
+    public int getPointNumber() {
+        return this.pointNumber;
+    }
+    
     public void setPointNumber(int pointNumber) {
-        this.data.setPointNumber(pointNumber);
+        this.pointNumber = pointNumber;
     }
 
     
     
     // Initialization
-    public Datapoint(DataSet data, String comment) {
+    public Datapoint(int pointNumber, DataSet data, String comment) {
+        this.pointNumber = pointNumber;
         this.data = data;
         this.comment = comment;
     }
     
-    public Datapoint(DataSet data) {
-        this(data, "");
+    public Datapoint(int pointNumber, DataSet data) {
+        this(pointNumber, data, "");
     }
     
 }

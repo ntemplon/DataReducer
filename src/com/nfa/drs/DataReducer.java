@@ -7,10 +7,11 @@ package com.nfa.drs;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.nfa.drs.reduction.ThermalBiasSettings;
-import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsDeserializer;
-import com.nfa.drs.reduction.ThermalBiasSettings.ThermalBiasSettingsSerializer;
+import com.nfa.drs.reduction.thermal.ThermalBiasSettings;
+import com.nfa.drs.reduction.thermal.ThermalBiasSettings.ThermalBiasSettingsDeserializer;
+import com.nfa.drs.reduction.thermal.ThermalBiasSettings.ThermalBiasSettingsSerializer;
 import com.nfa.drs.reduction.tare.TareSettings;
+import com.nfa.drs.reduction.tare.TareSettings.TareSettingsDeserializer;
 import com.nfa.drs.reduction.tare.TareSettings.TareSettingsSerializer;
 import com.nfa.io.FileLocations;
 import java.awt.event.WindowAdapter;
@@ -34,6 +35,7 @@ public class DataReducer {
             .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsSerializer())
             .registerTypeAdapter(ThermalBiasSettings.class, new ThermalBiasSettingsDeserializer())
             .registerTypeAdapter(TareSettings.class, new TareSettingsSerializer())
+            .registerTypeAdapter(TareSettings.class, new TareSettingsDeserializer())
             .create();
     
 

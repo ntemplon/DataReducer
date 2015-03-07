@@ -169,14 +169,6 @@ public class ReductionProcessor {
                 .forEach((Integer testPoint) -> {
                     this.applyCorrection(run.getName(), testPoint, "Thermal Bias", corrections.get(testPoint));
                 });
-
-        // Update Current Data
-        // COPY TO APPLY CORRECTION
-        this.currentData.put(run.getName(), corrections.keySet().stream()
-                .collect(Collectors.toMap(
-                                (Integer testPoint) -> testPoint,
-                                (Integer testPoint) -> new SimpleDataContainer(points.get(testPoint).getData().plus(corrections.get(testPoint)), "")))
-        );
     }
 
     private void removeThermalBiasTimeLinear(Run run) {
@@ -231,16 +223,8 @@ public class ReductionProcessor {
         // Put them into the list of reduction steps
         corrections.keySet().stream()
                 .forEach((Integer testPoint) -> {
-                    this.reductionSteps.get(run.getName()).get(testPoint).add(
-                            new DataWrapper("Thermal Bias", new SimpleDataContainer(corrections.get(testPoint), "")));
+                    this.applyCorrection(run.getName(), testPoint, "Thermal Bias", corrections.get(testPoint));
                 });
-
-        // Update Current Data
-        this.currentData.put(run.getName(), corrections.keySet().stream()
-                .collect(Collectors.toMap(
-                                (Integer testPoint) -> testPoint,
-                                (Integer testPoint) -> new SimpleDataContainer(points.get(testPoint).getData().plus(corrections.get(testPoint)), "")))
-        );
     }
 
     private void removeStaticTares() {
@@ -316,6 +300,9 @@ public class ReductionProcessor {
     
     private void applyCorrection(String runName, int testPoint, String correctionName, DataSet correction) {
         this.reductionSteps.get(runName).get(testPoint).add(new DataWrapper(correctionName, new SimpleDataContainer(correction, "")));
+        
+        Map<Integer, DataContainer> currentRunData = this.currentData.get(runName);
+        currentRunData.put(testPoint, new SimpleDataContainer(currentRunData.get(testPoint).getData().plus(correction), ""));
     }
     
     private int findLowerAngleOfAtack(List<DataSet> searchList, double alpha) {

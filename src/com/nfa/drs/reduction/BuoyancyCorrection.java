@@ -28,7 +28,11 @@ public class BuoyancyCorrection implements DataCorrection {
         final double density = constants.getConstant(Constants.Density);
         final double velocity = Math.sqrt((2 * data.get(DataValues.DynamicPressure)) / density);
         final double gradient = -1.0 * constants.getConstant(Constants.k) * ((density * velocity * velocity) / (2 * constants.getConstant(Constants.JetWidth)));
-
+        
+        if (Double.isNaN(gradient)) {
+            return new DataSet();
+        }
+        
         final double buoyancyCorrection = gradient * constants.getConstant(Constants.Volume);
 
         return new DataSet(Arrays.asList(DataValues.values()).stream()

@@ -5,9 +5,11 @@
  */
 package com.nfa.drs.reduction;
 
+import com.jupiter.ganymede.math.function.LinearFunction;
 import com.jupiter.ganymede.math.regression.LinearRegressor;
 import com.jupiter.ganymede.math.regression.Regressor;
 import com.nfa.drs.constants.ModelConstants;
+import com.nfa.drs.constants.ModelConstants.Constants;
 import com.nfa.drs.data.DataContainer;
 import com.nfa.drs.data.DataSet;
 import com.nfa.drs.data.DataSet.DataValues;
@@ -96,6 +98,7 @@ public class ReductionProcessor {
         this.removeStaticTares();
         this.removeDynamicTares();
         this.applyFlowCorrection(new BuoyancyCorrection());
+        this.performAxisTransfer();
 
         this.currentData.keySet().stream()
                 .forEach((String runName) ->
@@ -268,11 +271,11 @@ public class ReductionProcessor {
                     return staticTareName != null && !staticTareName.isEmpty();
                 })
                 .forEach((Run run) -> {
-                    this.removeStaticTare(run.getName(), this.tareSettings.getSettings(run.getName()).getStaticTare(), "Static Tare");
+                    this.removeStaticTare(run.getName(), this.tareSettings.getSettings(run.getName()).getStaticTare());
                 });
     }
 
-    private void removeStaticTare(String dataRun, String tareRun, String stageName) {
+    private void removeStaticTare(String dataRun, String tareRun) {
         Map<Integer, DataContainer> tareData = this.currentData.get(tareRun);
         List<DataSet> tareSets = tareData.keySet().stream()
                 .map((Integer testPoint) -> tareData.get(testPoint).getData())
@@ -286,10 +289,11 @@ public class ReductionProcessor {
                                 (DataValues values) -> values,
                                 (DataValues values) -> {
                                     if (values.isLoad()) {
-                                        return regress.bestFit(
+                                        final Function<Double, Double> func = regress.bestFit(
                                                 tareSets.stream()
                                                 .map((DataSet set) -> new Regressor.Point<Double, Double>(set.get(DataValues.AngleOfAttack), set.get(values)))
                                                 .collect(Collectors.toSet()));
+                                        return func;
                                     }
                                     else {
                                         return (Double value) -> 0.0;
@@ -309,7 +313,7 @@ public class ReductionProcessor {
                                             }
                                     ))
                     );
-                    this.applyCorrection(dataRun, testPoint, stageName, correction);
+                    this.applyCorrection(dataRun, testPoint, "Static Tare", correction);
                 });
     }
 
@@ -329,11 +333,11 @@ public class ReductionProcessor {
                     return dynamicTareName != null && !dynamicTareName.isEmpty();
                 })
                 .forEach((Run run) -> {
-                    this.removeDynamicTare(run.getName(), this.tareSettings.getSettings(run.getName()).getDynamicTare(), "Dynamic Tare");
+                    this.removeDynamicTare(run.getName(), this.tareSettings.getSettings(run.getName()).getDynamicTare());
                 });
     }
 
-    private void removeDynamicTare(String dataRun, String tareRun, String stageName) {
+    private void removeDynamicTare(String dataRun, String tareRun) {
         Map<Integer, DataContainer> tareData = this.currentData.get(tareRun);
         Map<Integer, DataContainer> runData = this.currentData.get(dataRun);
 
@@ -354,9 +358,7 @@ public class ReductionProcessor {
                                     else {
                                         return (Double value) -> 0.0;
                                     }
-                                }
-                        )
-                );
+                                }));
 
         runData.keySet().stream()
                 .forEach((Integer testPoint) -> {
@@ -365,12 +367,44 @@ public class ReductionProcessor {
                             .collect(Collectors.toMap(
                                             (DataValues value) -> value,
                                             (DataValues value) -> {
-                                                return -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack)
-                                                        * pointData.get(DataValues.DynamicPressure));
+                                                final double corr = -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack))
+                                                        * pointData.get(DataValues.DynamicPressure);
+
+                                                return corr;
                                             }
                                     ))
                     );
-                    this.applyCorrection(dataRun, testPoint, stageName, correction);
+                    this.applyCorrection(dataRun, testPoint, "Dynamic Tare", correction);
+                });
+    }
+
+    private void performAxisTransfer() {
+        final double xOff = this.constants.getConstant(Constants.Xmrc);
+        final double zOff = this.constants.getConstant(Constants.Zmrc);
+
+        this.rawData.getRuns().stream()
+                .map((Run run) -> run.getName())
+                .filter((String runName) -> !(this.staticTares.contains(runName) || this.dynamicTares.contains(runName)))
+                .forEach((String runName) -> {
+                    Map<Integer, DataContainer> runData = new LinkedHashMap<>(this.currentData.get(runName));
+                    runData.keySet().stream()
+                    .forEach((Integer testPoint) -> {
+                        final DataSet pointData = runData.get(testPoint).getData();
+                        final double alpha = Math.toRadians(pointData.get(DataValues.AngleOfAttack));
+
+                        final double xAcRc = zOff * Math.sin(alpha) + xOff * Math.cos(alpha);
+                        final double zAcRc = zOff * Math.cos(alpha) - xOff * Math.sin(alpha);
+
+                        final double oldPm = pointData.get(DataValues.PitchMoment);
+                        final double lift = pointData.get(DataValues.Lift);
+                        final double drag = pointData.get(DataValues.Drag);
+                        final double newPM = oldPm + (drag * zAcRc) - (lift * xAcRc);
+
+                        final Map<DataValues, Double> correction = new HashMap<>();
+                        correction.put(DataValues.PitchMoment, newPM);
+
+                        this.applyCorrection(runName, testPoint, "Moment Transfer", new DataSet(correction));
+                    });
                 });
     }
 

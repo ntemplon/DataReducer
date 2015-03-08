@@ -59,7 +59,7 @@ public class ReductionDetailFrame extends javax.swing.JFrame {
         reductionDetailPanel = new com.nfa.drs.ReductionDetailPanel();
         closeButton = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Reduction Detail");
         setPreferredSize(new java.awt.Dimension(750, 500));
         getContentPane().setLayout(new java.awt.GridBagLayout());

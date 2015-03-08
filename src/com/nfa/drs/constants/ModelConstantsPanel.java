@@ -8,7 +8,6 @@ package com.nfa.drs.constants;
 import com.google.gson.Gson;
 import com.nfa.drs.DataReducer;
 import com.nfa.drs.constants.ModelConstants.Constants;
-import com.nfa.gui.JNumberTextField;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +27,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 
 /**
@@ -55,7 +54,7 @@ public class ModelConstantsPanel extends JPanel {
 
 
     // Fields
-    private final Map<Constants, JNumberTextField> constantBoxes = new HashMap<>();
+    private final Map<Constants, JTextField> constantBoxes = new HashMap<>();
 
     private JButton importButton;
     private JButton exportButton;
@@ -69,12 +68,9 @@ public class ModelConstantsPanel extends JPanel {
 
         this.constantBoxes.keySet().stream()
                 .forEach((Constants constant) -> {
-                    Double value = null;
+                    Double value;
                     try {
-                        value = this.constantBoxes.get(constant).getDouble();
-                        if (value == null) {
-                            value = 0.0;
-                        }
+                        value = new Double(this.constantBoxes.get(constant).getText());
                     }
                     catch (Exception ex) {
                         value = 0.0;
@@ -88,10 +84,10 @@ public class ModelConstantsPanel extends JPanel {
     public void setModelConstants(ModelConstants constants) {
         Arrays.asList(Constants.values()).stream()
                 .forEach((Constants constant) -> {
-                    JNumberTextField field = this.constantBoxes.get(constant);
+                    JTextField field = this.constantBoxes.get(constant);
                     if (field != null) {
                         double value = constants.getConstant(constant);
-                        field.setNumber(value);
+                        field.setText("" + value);
                     }
                 });
     }
@@ -138,7 +134,7 @@ public class ModelConstantsPanel extends JPanel {
             Files.write(file, Arrays.asList(new String[]{json}));
         }
         catch (IOException ex) {
-
+            System.out.println(ex.getClass().getName() + ": " + ex.getMessage());
         }
     }
 
@@ -166,10 +162,9 @@ public class ModelConstantsPanel extends JPanel {
 
             this.add(label, cLabel);
 
-            JNumberTextField textField = new JNumberTextField();
+            JTextField textField = new JTextField(16);
             textField.setToolTipText(mc.getDescription());
-            textField.setFormat(JNumberTextField.DECIMAL);
-            textField.setNumber(0.0);
+            textField.setText("0.0");
 
             GridBagConstraints cText = new GridBagConstraints();
             cText.gridx = col;
@@ -253,8 +248,8 @@ public class ModelConstantsPanel extends JPanel {
 
             if (chooser.getFileFilter().equals(JSON_FILTER) && !file.toString().endsWith(".json")) {
                 file = Paths.get(file.toString() + ".json");
-                this.exportModelConstantsFile(file);
             }
+            this.exportModelConstantsFile(file);
         }
     }
 

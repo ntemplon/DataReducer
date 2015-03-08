@@ -5,6 +5,8 @@
  */
 package com.nfa.drs.reduction;
 
+import com.jupiter.ganymede.math.regression.LinearRegressor;
+import com.jupiter.ganymede.math.regression.Regressor;
 import com.nfa.drs.constants.ModelConstants;
 import com.nfa.drs.data.DataContainer;
 import com.nfa.drs.data.DataSet;
@@ -22,9 +24,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,6 +45,8 @@ public class ReductionProcessor {
     private final Map<String, ThermalBiasSettings> thermalBiasSettings;
     private final Map<String, Map<Integer, List<DataWrapper>>> reductionSteps = new LinkedHashMap<>();
     private final Map<String, Map<Integer, DataContainer>> currentData = new LinkedHashMap<>();
+    private final Set<String> staticTares = new HashSet<>();
+    private final Set<String> dynamicTares = new HashSet<>();
 
 
     // Initialization
@@ -67,6 +73,17 @@ public class ReductionProcessor {
                                     (Datapoint point) -> point.getPointNumber(),
                                     (Datapoint point) -> point));
                     this.currentData.put(run.getName(), data);
+
+                    // Add Static and Dynamic Tares to List
+                    TareSettingsEntry tse = this.tareSettings.getSettings(run.getName());
+                    String staticTare = tse.getStaticTare();
+                    if (staticTare != null && !staticTare.isEmpty()) {
+                        this.staticTares.add(staticTare);
+                    }
+                    String dynamicTare = tse.getDynamicTare();
+                    if (dynamicTare != null && !dynamicTare.isEmpty()) {
+                        this.dynamicTares.add(dynamicTare);
+                    }
                 });
     }
 
@@ -77,10 +94,17 @@ public class ReductionProcessor {
 
         this.removeThermalBias();
         this.removeStaticTares();
-        // Dynamic Tare
+        this.removeDynamicTares();
+        this.applyFlowCorrection(new BuoyancyCorrection());
+
+        this.currentData.keySet().stream()
+                .forEach((String runName) ->
+                        this.currentData.get(runName).keySet().stream()
+                        .forEach((Integer testPoint) -> this.currentData.get(runName).get(testPoint).getData().coefficientsFromLoads(this.constants))
+                );
+
         // Flow Field Corrections
         // Assemble Corrected Data
-
         Test corrected = new Test(this.currentData.keySet().stream()
                 .map((String key) -> new Run(key,
                                 this.currentData.get(key).keySet().stream()
@@ -147,7 +171,7 @@ public class ReductionProcessor {
                                 (DataValues value) -> value,
                                 (DataValues value) -> {
                                     if (value.isLoad()) {
-                                        return (Integer testPoint) -> -1.0 * (slopes.get(value) * (testPoint - 1));
+                                        return (Integer testPoint) -> -1.0 * (first.getData().get(value) + slopes.get(value) * (testPoint - 1));
                                     }
                                     else {
                                         return (Integer testPoint) -> 0.0;
@@ -203,7 +227,8 @@ public class ReductionProcessor {
                                 (DataValues value) -> value,
                                 (DataValues value) -> {
                                     if (value.isLoad()) {
-                                        return (Integer testPoint) -> -1.0 * (slopes.get(value) * (settings.getTime(testPoint) - firstTime));
+                                        return (Integer testPoint) -> -1.0 * (first.getData().get(value) + slopes.get(value)
+                                        * (settings.getTime(testPoint) - firstTime));
                                     }
                                     else {
                                         return (Integer testPoint) -> 0.0;
@@ -243,75 +268,131 @@ public class ReductionProcessor {
                     return staticTareName != null && !staticTareName.isEmpty();
                 })
                 .forEach((Run run) -> {
-                    this.removeTare(run.getName(), this.tareSettings.getSettings(run.getName()).getStaticTare(), "Static Tare");
+                    this.removeStaticTare(run.getName(), this.tareSettings.getSettings(run.getName()).getStaticTare(), "Static Tare");
                 });
     }
 
-    private void removeTare(String dataRun, String tareRun, String stageName) {
+    private void removeStaticTare(String dataRun, String tareRun, String stageName) {
         Map<Integer, DataContainer> tareData = this.currentData.get(tareRun);
         List<DataSet> tareSets = tareData.keySet().stream()
                 .map((Integer testPoint) -> tareData.get(testPoint).getData())
                 .collect(Collectors.toList());
         tareSets.sort((DataSet first, DataSet second) -> Double.compare(first.get(DataValues.AngleOfAttack), second.get(DataValues.AngleOfAttack)));
-
         Map<Integer, DataContainer> runData = this.currentData.get(dataRun);
+
+        Regressor regress = new LinearRegressor();
+        Map<DataValues, Function<Double, Double>> tareFunctions = Arrays.asList(DataValues.values()).stream()
+                .collect(Collectors.toMap(
+                                (DataValues values) -> values,
+                                (DataValues values) -> {
+                                    if (values.isLoad()) {
+                                        return regress.bestFit(
+                                                tareSets.stream()
+                                                .map((DataSet set) -> new Regressor.Point<Double, Double>(set.get(DataValues.AngleOfAttack), set.get(values)))
+                                                .collect(Collectors.toSet()));
+                                    }
+                                    else {
+                                        return (Double value) -> 0.0;
+                                    }
+                                }
+                        )
+                );
+
         runData.keySet().stream()
                 .forEach((Integer testPoint) -> {
-                    DataSet pointSets = runData.get(testPoint).getData();
-                    double alpha = pointSets.get(DataValues.AngleOfAttack);
-                    
-                    int lowestIndex = this.findLowerAngleOfAtack(tareSets, alpha);
-                    int interpLower = 0;
-                    int interpUpper = 1;
-                    if (lowestIndex >= runData.size()) {
-                        interpLower = runData.size() - 2;
-                        interpUpper = runData.size() - 1;
-                    }
-                    else if (lowestIndex >= 0) {
-                        interpLower = lowestIndex;
-                        interpUpper = lowestIndex + 1;
-                    }
-                    
-                    DataSet lowerData = tareSets.get(interpLower);
-                    DataSet upperData = tareSets.get(interpUpper);
-                    double lowerAlpha = lowerData.get(DataValues.AngleOfAttack);
-                    double upperAlpha = upperData.get(DataValues.AngleOfAttack);
-                    final double interpFraction = alpha / (upperAlpha - lowerAlpha);
-                    
+                    DataSet pointData = runData.get(testPoint).getData();
                     DataSet correction = new DataSet(Arrays.asList(DataValues.values()).stream()
                             .collect(Collectors.toMap(
-                                    (DataValues value) -> value,
-                                    (DataValues value) -> {
-                                        if (value.isLoad()) {
-                                            double upper = upperData.get(value);
-                                            double lower = lowerData.get(value);
-                                            double delta = (upper - lower) * interpFraction;
-                                            return -1.0 * (lower + delta);
-                                        }
-                                        else {
-                                            return 0.0;
-                                        }
-                                    }
-                            ))
+                                            (DataValues value) -> value,
+                                            (DataValues value) -> {
+                                                return -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack));
+                                            }
+                                    ))
                     );
                     this.applyCorrection(dataRun, testPoint, stageName, correction);
                 });
     }
-    
+
+    private void removeDynamicTares() {
+        this.rawData.getRuns().stream()
+                .filter((Run run) -> {
+                    if (this.tareSettings == null) {
+                        return false;
+                    }
+
+                    TareSettingsEntry tse = this.tareSettings.getSettings(run.getName());
+                    if (tse == null) {
+                        return false;
+                    }
+
+                    String dynamicTareName = tse.getDynamicTare();
+                    return dynamicTareName != null && !dynamicTareName.isEmpty();
+                })
+                .forEach((Run run) -> {
+                    this.removeDynamicTare(run.getName(), this.tareSettings.getSettings(run.getName()).getDynamicTare(), "Dynamic Tare");
+                });
+    }
+
+    private void removeDynamicTare(String dataRun, String tareRun, String stageName) {
+        Map<Integer, DataContainer> tareData = this.currentData.get(tareRun);
+        Map<Integer, DataContainer> runData = this.currentData.get(dataRun);
+
+        Regressor regress = new LinearRegressor();
+        Map<DataValues, Function<Double, Double>> tareFunctions = Arrays.asList(DataValues.values()).stream()
+                .collect(Collectors.toMap(
+                                (DataValues values) -> values,
+                                (DataValues values) -> {
+                                    if (values.isLoad()) {
+                                        return regress.bestFit(
+                                                tareData.keySet().stream()
+                                                .filter((Integer testPoint) -> testPoint > 1 && testPoint < runData.size())
+                                                .map((Integer testPoint) -> tareData.get(testPoint).getData())
+                                                .map((DataSet set) -> new Regressor.Point<Double, Double>(set.get(DataValues.AngleOfAttack), set.get(values)
+                                                                / set.get(DataValues.DynamicPressure)))
+                                                .collect(Collectors.toSet()));
+                                    }
+                                    else {
+                                        return (Double value) -> 0.0;
+                                    }
+                                }
+                        )
+                );
+
+        runData.keySet().stream()
+                .forEach((Integer testPoint) -> {
+                    DataSet pointData = runData.get(testPoint).getData();
+                    DataSet correction = new DataSet(Arrays.asList(DataValues.values()).stream()
+                            .collect(Collectors.toMap(
+                                            (DataValues value) -> value,
+                                            (DataValues value) -> {
+                                                return -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack)
+                                                        * pointData.get(DataValues.DynamicPressure));
+                                            }
+                                    ))
+                    );
+                    this.applyCorrection(dataRun, testPoint, stageName, correction);
+                });
+    }
+
     private void applyCorrection(String runName, int testPoint, String correctionName, DataSet correction) {
         this.reductionSteps.get(runName).get(testPoint).add(new DataWrapper(correctionName, new SimpleDataContainer(correction, "")));
-        
+
         Map<Integer, DataContainer> currentRunData = this.currentData.get(runName);
         currentRunData.put(testPoint, new SimpleDataContainer(currentRunData.get(testPoint).getData().plus(correction), ""));
     }
-    
-    private int findLowerAngleOfAtack(List<DataSet> searchList, double alpha) {
-        for (int i = 0; i < searchList.size(); i++) {
-            if (searchList.get(i).get(DataValues.AngleOfAttack) < alpha) {
-                return i;
-            }
-        }
-        return -1;
+
+    private void applyFlowCorrection(DataCorrection correction) {
+        this.rawData.getRuns().stream()
+                .map((Run run) -> run.getName())
+                .filter((String runName) -> !(this.staticTares.contains(runName) || this.dynamicTares.contains(runName)))
+                .forEach((String runName) -> {
+                    Map<Integer, DataContainer> runData = new LinkedHashMap<>(this.currentData.get(runName));
+                    runData.keySet().stream()
+                    .forEach((Integer testPoint) -> {
+                        this.applyCorrection(runName, testPoint, correction.getName(), correction.getCorrection(this.currentData.get(runName).get(testPoint)
+                                        .getData(), this.constants));
+                    });
+                });
     }
 
 

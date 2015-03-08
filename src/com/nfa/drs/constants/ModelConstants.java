@@ -28,6 +28,7 @@ public class ModelConstants {
         WingArea("Wing Area (sq ft)", "The reference area for coefficients."),
         FrontalArea("Frontal Area (sq ft)", "The frontal area of the vehicle seen by the flow."),
         Chord("Wing Chord (ft)", "The reference length for coefficients."),
+        Volume("Volume (ft^3)", "The total model volume."),
         BodyThickness("Body Thickness (ft)", "The maximum thickness of the body, in it's own body axis."),
         JetWidth("Jet Width (ft)", "The width of the jet in which the test was conducted."),
         JetHeight("Jet Height (ft)", "The height of the jet in wich the test was conducted."),
@@ -35,10 +36,11 @@ public class ModelConstants {
         Delta("\u03B4", "A boundary correction factor for a closed test section. See Rae, Pope, and Barlow (3rd ed) figure 10.36."),
         AspectRatio("Aspect Ratio", "The aspect ratio of the main wing."),
         Xmrc("Xmrc (ft)", "The distance from the balance resolution center to the aircraft cg along the x axis (positive upstream)."),
-        Ymrc("Ymrc (ft)", "The distance from the balance resolution center to the aircraft cg along the y axis (positive down)."),
+        Zmrc("Zmrc (ft)", "The distance from the balance resolution center to the aircraft cg along the z axis (positive down)."),
         Lambda2("\u03BB2 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (3rd ed) figure 9.16."),
         Lambda3("\u03BB3 Shape Factor", "A shape factor.  See Rae, Pope, and Barlow (2nd ed) figure 6.12."),
-        k("k Constant", "A factor from Rae, Pope, and Barlow.");
+        k("k Constant", "A factor from Rae, Pope, and Barlow."),
+        Density("Density (slugs/ft^3)", "Local density.");
 
         private static final Map<String, Constants> byDisplayName = new HashMap<>();
         private static final Lock bdnLock = new ReentrantLock();

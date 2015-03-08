@@ -218,17 +218,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
         DataFormat format = formats.get(this.formatCombo.getSelectedItem().toString());
         this.test.set(format.fromDirectory(dir));
 
-        // Adding the Runs to Various Things
-        this.tareRunComboBox.removeAllItems();
-        this.test.get().getRuns().stream()
-                .forEach((Run run) -> {
-                    run.getDatapoints().stream()
-                    .forEach((point) -> {
-                        this.dataViewer.addData(run.getName(), point);
-                    });
-                    this.tareRunComboBox.addItem(run.getName());
-                });
-
         // Attempt to Import Model Constants
         this.modelConstantsPanel.setDefaultDirectory(dir);
         Path mcFile = dir.resolve(ModelConstants.DEFAULT_FILE_NAME);
@@ -242,7 +231,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
             this.importThermalBias(tbFile);
         }
 
-        // Attempt to Import Tare Settings (WIP)
+        // Attempt to Import Tare Settings
         Path tareFile = dir.resolve(TareSettings.DEFAULT_TARE_SETTINGS_FILE);
         if (Files.exists(tareFile)) {
             this.importTareSettings(tareFile);
@@ -255,6 +244,26 @@ public class DataReductionPanel extends javax.swing.JPanel {
                 this.tareRunComboBox.setSelectedIndex(0);
             }
         }
+
+        // Calculate Initial Coefficients
+        this.test.get().getRuns().stream()
+                .forEach((Run run) ->
+                        run.getDatapoints().stream()
+                        .forEach((Datapoint point) ->
+                                point.getData().coefficientsFromLoads(this.modelConstantsPanel.getModelConstants())
+                        )
+                );
+        
+        // Adding the Runs to Various Things
+        this.tareRunComboBox.removeAllItems();
+        this.test.get().getRuns().stream()
+                .forEach((Run run) -> {
+                    run.getDatapoints().stream()
+                    .forEach((Datapoint point) -> {
+                        this.dataViewer.addData(run.getName(), point);
+                    });
+                    this.tareRunComboBox.addItem(run.getName());
+                });
 
         this.resizeThermalBiasView();
         this.refreshTareSettings();
@@ -600,28 +609,28 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private void calculateReducedData() {
         ReductionProcessor proc = new ReductionProcessor(this.test.get(), this.modelConstantsPanel.getModelConstants(), this.tareSettings,
                 this.thermalBiasSettings);
-        
+
         this.lastResults = proc.reduce();
-        
+
         this.reducedDataViewer.clear();
         this.lastResults.getReducedData().getRuns().stream()
-                .forEach((Run run) -> 
+                .forEach((Run run) ->
                         run.getDatapoints().stream()
-                        .forEach((Datapoint point) -> 
+                        .forEach((Datapoint point) ->
                                 this.reducedDataViewer.addData(run.getName(), point)
                         )
                 );
     }
-    
+
     private void showResultsDetailButtonAction(ActionEvent e) {
         if (this.lastResults == null) {
             return;
         }
-        
+
         ReductionDetailFrame frame = new ReductionDetailFrame();
-        
+
         frame.setDetailedResults(this.lastResults.getReductionSteps());
-        
+
         frame.setVisible(true);
     }
 
@@ -678,7 +687,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
         importThermalButton = new javax.swing.JButton();
         exportThermalButton = new javax.swing.JButton();
         filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
-        reductionPanel = new javax.swing.JPanel();
         dataTab = new javax.swing.JPanel();
         reducedDataLabel = new javax.swing.JLabel();
         reducedDataViewerScrollPane = new javax.swing.JScrollPane();
@@ -1032,19 +1040,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
         tabbedPane.addTab("Thermal Bias", thermalPanel);
 
-        javax.swing.GroupLayout reductionPanelLayout = new javax.swing.GroupLayout(reductionPanel);
-        reductionPanel.setLayout(reductionPanelLayout);
-        reductionPanelLayout.setHorizontalGroup(
-            reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 935, Short.MAX_VALUE)
-        );
-        reductionPanelLayout.setVerticalGroup(
-            reductionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 563, Short.MAX_VALUE)
-        );
-
-        tabbedPane.addTab("Flow Corrections", reductionPanel);
-
         dataTab.setLayout(new java.awt.GridBagLayout());
 
         reducedDataLabel.setText("Reduced Data");
@@ -1129,7 +1124,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private javax.swing.JLabel reducedDataLabel;
     private com.nfa.drs.data.DataContainerViewer reducedDataViewer;
     private javax.swing.JScrollPane reducedDataViewerScrollPane;
-    private javax.swing.JPanel reductionPanel;
     private javax.swing.JButton refreshReductionButton;
     private javax.swing.Box.Filler startEndStrut;
     private javax.swing.JLabel staticTareLabel;

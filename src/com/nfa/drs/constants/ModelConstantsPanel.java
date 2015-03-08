@@ -48,6 +48,9 @@ public class ModelConstantsPanel extends JPanel {
 
         @Override
         public boolean accept(File file) {
+            if (file == null || file.toString() == null) {
+                return false;
+            }
             return file.isDirectory() || file.getAbsoluteFile().toString().endsWith(".json");
         }
     };

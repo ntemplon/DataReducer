@@ -192,6 +192,9 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
             @Override
             public boolean accept(File f) {
+                if (f == null || f.toString() == null) {
+                    return false;
+                }
                 return f.isDirectory() || f.toString().endsWith(".csv");
             }
 

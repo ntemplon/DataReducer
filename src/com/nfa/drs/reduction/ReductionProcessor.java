@@ -5,7 +5,6 @@
  */
 package com.nfa.drs.reduction;
 
-import com.jupiter.ganymede.math.function.LinearFunction;
 import com.jupiter.ganymede.math.regression.LinearRegressor;
 import com.jupiter.ganymede.math.regression.Regressor;
 import com.nfa.drs.constants.ModelConstants;
@@ -395,13 +394,12 @@ public class ReductionProcessor {
                         final double xAcRc = zOff * Math.sin(alpha) + xOff * Math.cos(alpha);
                         final double zAcRc = zOff * Math.cos(alpha) - xOff * Math.sin(alpha);
 
-                        final double oldPm = pointData.get(DataValues.PitchMoment);
                         final double lift = pointData.get(DataValues.Lift);
                         final double drag = pointData.get(DataValues.Drag);
-                        final double newPM = oldPm + (drag * zAcRc) - (lift * xAcRc);
+                        final double pmChange = (drag * zAcRc) - (lift * xAcRc);
 
                         final Map<DataValues, Double> correction = new HashMap<>();
-                        correction.put(DataValues.PitchMoment, newPM);
+                        correction.put(DataValues.PitchMoment, pmChange);
 
                         this.applyCorrection(runName, testPoint, "Moment Transfer", new DataSet(correction));
                     });

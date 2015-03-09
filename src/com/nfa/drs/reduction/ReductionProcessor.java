@@ -5,8 +5,10 @@
  */
 package com.nfa.drs.reduction;
 
+import com.jupiter.ganymede.math.function.LinearFunction;
 import com.jupiter.ganymede.math.regression.LinearRegressor;
 import com.jupiter.ganymede.math.regression.Regressor;
+import com.jupiter.ganymede.math.regression.Regressor.Point;
 import com.nfa.drs.constants.ModelConstants;
 import com.nfa.drs.constants.ModelConstants.Constants;
 import com.nfa.drs.data.DataContainer;
@@ -101,7 +103,7 @@ public class ReductionProcessor {
         this.applyFlowCorrection(new BlockageCorrection(this.getCd0()));
         this.applyFlowCorrection(new AngleOfAttackCorrection());
         this.applyFlowCorrection(new WakeDragCorrection());
-        this.applyFlowCorrection(new StreamwiseCurvatureCorrection(0.0666));
+        this.applyFlowCorrection(new StreamwiseCurvatureCorrection(this.getClAlpha()));
 
         this.currentData.keySet().stream()
                 .forEach((String runName) ->
@@ -472,6 +474,37 @@ public class ReductionProcessor {
         final double cd0 = cd - cdi;
 
         return cd0;
+    }
+
+    private double getClAlpha() {
+        return this.currentData.keySet().stream()
+                .filter(this::isDataRun)
+                .mapToDouble(this::getClAlpha)
+                .average().getAsDouble();
+    }
+
+    private double getClAlpha(String runName) {
+        LinearRegressor regress = new LinearRegressor();
+
+        final Map<Integer, DataContainer> runData = this.currentData.get(runName);
+        Function<Double, Double> clFunction = regress.bestFit(
+                runData.keySet().stream()
+                .filter((Integer testPoint) -> this.isValidPoint(runName, testPoint))
+                .map((Integer testPoint) -> {
+                    final DataSet pointData = runData.get(testPoint).getData();
+                    pointData.coefficientsFromLoads(this.constants);
+                    return new Point<Double, Double>(
+                            pointData.get(DataValues.AngleOfAttack),
+                            pointData.get(DataValues.CL));
+                })
+                .collect(Collectors.toSet()));
+
+        if (clFunction instanceof LinearFunction) {
+            LinearFunction lin = (LinearFunction) clFunction;
+            System.out.println(lin.getSlope());
+            return lin.getSlope();
+        }
+        return (2.0 * Math.PI) / (180.0 / Math.PI);
     }
 
     private boolean isDataRun(String runName) {

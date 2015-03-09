@@ -98,6 +98,10 @@ public class ReductionProcessor {
         this.removeDynamicTares();
         this.applyFlowCorrection(new BuoyancyCorrection());
         this.performAxisTransfer();
+        this.applyFlowCorrection(new BlockageCorrection(this.getCd0()));
+        this.applyFlowCorrection(new AngleOfAttackCorrection());
+        this.applyFlowCorrection(new WakeDragCorrection());
+        this.applyFlowCorrection(new StreamwiseCurvatureCorrection(0.0666));
 
         this.currentData.keySet().stream()
                 .forEach((String runName) ->
@@ -348,7 +352,7 @@ public class ReductionProcessor {
                                     if (values.isLoad()) {
                                         return regress.bestFit(
                                                 tareData.keySet().stream()
-                                                .filter((Integer testPoint) -> testPoint > 1 && testPoint < runData.size())
+                                                .filter((Integer testPoint) -> this.isValidPoint(dataRun, testPoint))
                                                 .map((Integer testPoint) -> tareData.get(testPoint).getData())
                                                 .map((DataSet set) -> new Regressor.Point<Double, Double>(set.get(DataValues.AngleOfAttack), set.get(values)
                                                                 / set.get(DataValues.DynamicPressure)))
@@ -367,7 +371,7 @@ public class ReductionProcessor {
                                             (DataValues value) -> value,
                                             (DataValues value) -> {
                                                 final double corr = -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack))
-                                                        * pointData.get(DataValues.DynamicPressure);
+                                                * pointData.get(DataValues.DynamicPressure);
 
                                                 return corr;
                                             }
@@ -378,12 +382,12 @@ public class ReductionProcessor {
     }
 
     private void performAxisTransfer() {
-        final double xOff = this.constants.getConstant(Constants.Xmrc);
-        final double zOff = this.constants.getConstant(Constants.Zmrc);
+        final double xOff = this.constants.get(Constants.Xmrc);
+        final double zOff = this.constants.get(Constants.Zmrc);
 
         this.rawData.getRuns().stream()
                 .map((Run run) -> run.getName())
-                .filter((String runName) -> !(this.staticTares.contains(runName) || this.dynamicTares.contains(runName)))
+                .filter((String runName) -> this.isDataRun(runName))
                 .forEach((String runName) -> {
                     Map<Integer, DataContainer> runData = new LinkedHashMap<>(this.currentData.get(runName));
                     runData.keySet().stream()
@@ -416,7 +420,7 @@ public class ReductionProcessor {
     private void applyFlowCorrection(DataCorrection correction) {
         this.rawData.getRuns().stream()
                 .map((Run run) -> run.getName())
-                .filter((String runName) -> !(this.staticTares.contains(runName) || this.dynamicTares.contains(runName)))
+                .filter((String runName) -> this.isDataRun(runName))
                 .forEach((String runName) -> {
                     Map<Integer, DataContainer> runData = new LinkedHashMap<>(this.currentData.get(runName));
                     runData.keySet().stream()
@@ -425,6 +429,61 @@ public class ReductionProcessor {
                                         .getData(), this.constants));
                     });
                 });
+    }
+
+    private double getCd0() {
+        return this.currentData.keySet().stream()
+                .filter(this::isDataRun)
+                .mapToDouble(this::getCd0)
+                .average().getAsDouble();
+    }
+
+    private double getCd0(String runName) {
+//        return this.currentData.get(runName).keySet().stream()
+//                .filter((Integer testPoint) -> this.isValidPoint(runName, testPoint))
+//                .mapToDouble((Integer testPoint) -> this.getCd0(runName, testPoint))
+//                .average().getAsDouble();
+        Integer lowLiftPoint = null;
+        double lowestLiftMag = 0.0;
+        final Map<Integer, DataContainer> runData = this.currentData.get(runName);
+        for (Integer testPoint : runData.keySet()) {
+            if (this.isValidPoint(runName, testPoint)) {
+                final double liftMag = Math.abs(runData.get(testPoint).getData().get(DataValues.Lift));
+                if (lowLiftPoint == null || liftMag < lowestLiftMag) {
+                    lowestLiftMag = liftMag;
+                    lowLiftPoint = testPoint;
+                }
+            }
+        }
+        return this.getCd0(runName, lowLiftPoint);
+    }
+
+    private double getCd0(String runName, Integer testPoint) {
+        final DataSet data = this.currentData.get(runName).get(testPoint).getData();
+
+        data.coefficientsFromLoads(this.constants);
+
+        final double cd = data.get(DataValues.CD);
+        final double cl = data.get(DataValues.CL);
+        final double e = this.constants.get(Constants.OswaldEfficiency);
+        final double ar = this.constants.get(Constants.AspectRatio);
+
+        final double cdi = (cl * cl) / (Math.PI * e * ar);
+        final double cd0 = cd - cdi;
+
+        return cd0;
+    }
+
+    private boolean isDataRun(String runName) {
+        return !(this.staticTares.contains(runName) || this.dynamicTares.contains(runName));
+    }
+
+    private boolean isValidPoint(String runName, int testPoint) {
+        ThermalBiasSettings tbs = this.thermalBiasSettings.get(runName);
+        if (tbs != null && tbs.getComputeThermalBias()) {
+            return testPoint > 1 && testPoint < this.rawData.getRun(runName).getPointCount();
+        }
+        return true;
     }
 
 

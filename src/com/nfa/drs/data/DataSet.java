@@ -140,17 +140,17 @@ public class DataSet {
     }
 
     public void coefficientsFromLoads(ModelConstants constants) {
-        this.data.put(DataValues.CL, this.data.get(DataValues.Lift) / (this.data.get(DataValues.DynamicPressure) * constants.getConstant(Constants.WingArea)));
-        this.data.put(DataValues.CD, this.data.get(DataValues.Drag) / (this.data.get(DataValues.DynamicPressure) * constants.getConstant(Constants.WingArea)));
+        this.data.put(DataValues.CL, this.data.get(DataValues.Lift) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
+        this.data.put(DataValues.CD, this.data.get(DataValues.Drag) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
         this.data.put(DataValues.CPM, this.data.get(DataValues.PitchMoment) / (this.data.get(DataValues.DynamicPressure)
-                * constants.getConstant(Constants.WingArea) * constants.getConstant(Constants.Chord)));
+                * constants.get(Constants.WingArea) * constants.get(Constants.Chord)));
     }
     
     public void loadsFromCoefficients(ModelConstants constants) {
-        this.data.put(DataValues.Lift, this.data.get(DataValues.CL) * this.data.get(DataValues.DynamicPressure) * constants.getConstant(Constants.WingArea));
-        this.data.put(DataValues.Drag, this.data.get(DataValues.CD) * this.data.get(DataValues.DynamicPressure) * constants.getConstant(Constants.WingArea));
+        this.data.put(DataValues.Lift, this.data.get(DataValues.CL) * this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea));
+        this.data.put(DataValues.Drag, this.data.get(DataValues.CD) * this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea));
         this.data.put(DataValues.PitchMoment, this.data.get(DataValues.CPM) * this.data.get(DataValues.DynamicPressure)
-                * constants.getConstant(Constants.WingArea) * constants.getConstant(Constants.Chord));
+                * constants.get(Constants.WingArea) * constants.get(Constants.Chord));
     }
 
 }

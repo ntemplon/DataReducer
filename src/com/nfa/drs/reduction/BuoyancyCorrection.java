@@ -25,15 +25,15 @@ public class BuoyancyCorrection implements DataCorrection {
     
     @Override
     public DataSet getCorrection(DataSet data, ModelConstants constants) {
-        final double density = constants.getConstant(Constants.Density);
+        final double density = constants.get(Constants.Density);
         final double velocity = Math.sqrt((2 * data.get(DataValues.DynamicPressure)) / density);
-        final double gradient = -1.0 * constants.getConstant(Constants.k) * ((density * velocity * velocity) / (2 * constants.getConstant(Constants.JetWidth)));
+        final double gradient = -1.0 * constants.get(Constants.k) * ((density * velocity * velocity) / (2 * constants.get(Constants.JetWidth)));
         
         if (Double.isNaN(gradient)) {
             return new DataSet();
         }
         
-        final double buoyancyCorrection = gradient * constants.getConstant(Constants.Volume);
+        final double buoyancyCorrection = gradient * constants.get(Constants.Volume);
 
         return new DataSet(Arrays.asList(DataValues.values()).stream()
                 .collect(Collectors.toMap(

@@ -89,7 +89,7 @@ public class ModelConstantsPanel extends JPanel {
                 .forEach((Constants constant) -> {
                     JTextField field = this.constantBoxes.get(constant);
                     if (field != null) {
-                        double value = constants.getConstant(constant);
+                        double value = constants.get(constant);
                         field.setText("" + value);
                     }
                 });
@@ -124,7 +124,7 @@ public class ModelConstantsPanel extends JPanel {
                 this.setModelConstants(mcs);
             }
         }
-        catch (IOException ex) {
+        catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "There was an error while importing the model constants.", "Import Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -202,7 +202,7 @@ public class ModelConstantsPanel extends JPanel {
 
         GridBagConstraints cBtn = new GridBagConstraints();
         cBtn.gridx = 0;
-        cBtn.gridy = row + 1;
+        cBtn.gridy = row + 2;
         cBtn.weightx = 1.0;
         cBtn.gridwidth = GridBagConstraints.REMAINDER;
         cBtn.fill = GridBagConstraints.HORIZONTAL;

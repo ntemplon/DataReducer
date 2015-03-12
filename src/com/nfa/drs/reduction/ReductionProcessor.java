@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -355,9 +356,11 @@ public class ReductionProcessor {
                                         return regress.bestFit(
                                                 tareData.keySet().stream()
                                                 .filter((Integer testPoint) -> this.isValidPoint(dataRun, testPoint))
+                                                .filter((Integer testPoint) -> tareData.get(testPoint).getData().get(DataValues.DynamicPressure) > 0.1)
                                                 .map((Integer testPoint) -> tareData.get(testPoint).getData())
                                                 .map((DataSet set) -> new Regressor.Point<Double, Double>(set.get(DataValues.AngleOfAttack), set.get(values)
                                                                 / set.get(DataValues.DynamicPressure)))
+                                                //                                                .filter((Point<Double, Double> point) -> !(Double.isNaN(point.first) || Double.isNaN(point.second)))
                                                 .collect(Collectors.toSet()));
                                     }
                                     else {
@@ -374,6 +377,10 @@ public class ReductionProcessor {
                                             (DataValues value) -> {
                                                 final double corr = -1.0 * tareFunctions.get(value).apply(pointData.get(DataValues.AngleOfAttack))
                                                 * pointData.get(DataValues.DynamicPressure);
+
+                                                if (Double.isNaN(corr)) {
+                                                    System.out.println("NaN: " + value + ", " + dataRun + ", " + tareRun + ", " + testPoint);
+                                                }
 
                                                 return corr;
                                             }
@@ -398,11 +405,11 @@ public class ReductionProcessor {
                         final double alpha = Math.toRadians(pointData.get(DataValues.AngleOfAttack));
 
                         final double xAcRc = zOff * Math.sin(alpha) + xOff * Math.cos(alpha);
-                        final double zAcRc = zOff * Math.cos(alpha) - xOff * Math.sin(alpha);
+                        final double zAcRc = -1.0 * (zOff * Math.cos(alpha) + xOff * Math.sin(alpha));
 
                         final double lift = pointData.get(DataValues.Lift);
                         final double drag = pointData.get(DataValues.Drag);
-                        final double pmChange = (drag * zAcRc) - (lift * xAcRc);
+                        final double pmChange = drag * zAcRc + (-1.0 * lift * xAcRc);
 
                         final Map<DataValues, Double> correction = new HashMap<>();
                         correction.put(DataValues.PitchMoment, pmChange);
@@ -434,10 +441,12 @@ public class ReductionProcessor {
     }
 
     private double getCd0() {
-        return this.currentData.keySet().stream()
-                .filter(this::isDataRun)
-                .mapToDouble(this::getCd0)
-                .average().getAsDouble();
+        return 0.055;
+//        return this.currentData.keySet().stream()
+//                .filter(this::isDataRun)
+//                .mapToDouble(this::getCd0)
+//                .filter((double cd0) -> !Double.isNaN(cd0))
+//                .average().getAsDouble();
     }
 
     private double getCd0(String runName) {
@@ -477,10 +486,19 @@ public class ReductionProcessor {
     }
 
     private double getClAlpha() {
-        return this.currentData.keySet().stream()
-                .filter(this::isDataRun)
-                .mapToDouble(this::getClAlpha)
-                .average().getAsDouble();
+        return 5;
+//        final OptionalDouble cla = this.currentData.keySet().stream()
+//                .filter(this::isDataRun)
+//                .mapToDouble(this::getClAlpha)
+//                .filter((double clAlpha) -> !Double.isNaN(clAlpha))
+//                .average();
+//        
+//        if (cla.isPresent()) {
+//            return cla.getAsDouble();
+//        }
+//        else {
+//            return 4;
+//        }
     }
 
     private double getClAlpha(String runName) {

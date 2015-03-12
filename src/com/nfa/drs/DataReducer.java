@@ -80,7 +80,7 @@ public class DataReducer {
             public void windowClosing(WindowEvent e) {
                 String json = gson.toJson(form.getDefaults());
                 try {
-                    Files.write(FileLocations.DEFAULTS_FILE, Arrays.asList(new String[]{json}), StandardOpenOption.CREATE);
+                    Files.write(FileLocations.DEFAULTS_FILE, Arrays.asList(new String[]{json}));
                 }
                 catch (IOException ex) {
                     

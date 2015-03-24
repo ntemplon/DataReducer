@@ -5,6 +5,9 @@
  */
 package com.nfa.drs;
 
+import java.awt.Image;
+import javax.swing.ImageIcon;
+
 /**
  *
  * @author Nathan Templon
@@ -15,17 +18,22 @@ public class DataReductionFrame extends javax.swing.JFrame {
     public final Defaults getDefaults() {
         return this.dataReductionPanel.getDefaults();
     }
-    
+
     public final void setDefaults(Defaults defaults) {
         this.dataReductionPanel.setDefaults(defaults);
     }
-    
-    
+
+
     /**
      * Creates new form DataReductionFrame
      */
     public DataReductionFrame() {
         initComponents();
+        ImageIcon icon = new ImageIcon(getClass().getResource("res/Logo.png"));
+        Image image = icon.getImage();
+        if (image != null) {
+            this.setIconImage(image);
+        }
     }
 
     /**

@@ -41,6 +41,11 @@ import java.util.stream.Collectors;
  * @author Nathan Templon
  */
 public class ReductionProcessor {
+    
+    // Constants
+    public static final double CD0 = 0.05;
+    public static final double CL_ALPHA = 3.7;
+    
 
     // Fields
     private final Test rawData;
@@ -404,7 +409,7 @@ public class ReductionProcessor {
                         final DataSet pointData = runData.get(testPoint).getData();
                         final double alpha = Math.toRadians(pointData.get(DataValues.AngleOfAttack));
 
-                        final double xAcRc = zOff * Math.sin(alpha) + xOff * Math.cos(alpha);
+                        final double xAcRc = (-1.0 * zOff * Math.sin(alpha)) + xOff * Math.cos(alpha);
                         final double zAcRc = -1.0 * (zOff * Math.cos(alpha) + xOff * Math.sin(alpha));
 
                         final double lift = pointData.get(DataValues.Lift);
@@ -419,11 +424,23 @@ public class ReductionProcessor {
                 });
     }
 
-    private void applyCorrection(String runName, int testPoint, String correctionName, DataSet correction) {
-        this.reductionSteps.get(runName).get(testPoint).add(new DataWrapper(correctionName, new SimpleDataContainer(correction, "")));
+    private void applyCorrection(final String runName, final int testPoint, final String correctionName, final DataSet correction) {
+        final Map<DataValues, Double> sanitized = new HashMap<>();
+        for(DataValues value : DataValues.values()) {
+            double crctn = correction.get(value);
+            if (!Double.isNaN(crctn) && Double.isFinite(crctn)) {
+                sanitized.put(value, crctn);
+            }
+            else {
+                sanitized.put(value, 0.0);
+            }
+        }
+        final DataSet sanitizedCorrection = new DataSet(sanitized);
+        
+        this.reductionSteps.get(runName).get(testPoint).add(new DataWrapper(correctionName, new SimpleDataContainer(sanitizedCorrection, "")));
 
         Map<Integer, DataContainer> currentRunData = this.currentData.get(runName);
-        currentRunData.put(testPoint, new SimpleDataContainer(currentRunData.get(testPoint).getData().plus(correction), ""));
+        currentRunData.put(testPoint, new SimpleDataContainer(currentRunData.get(testPoint).getData().plus(sanitizedCorrection), ""));
     }
 
     private void applyFlowCorrection(DataCorrection correction) {
@@ -441,7 +458,7 @@ public class ReductionProcessor {
     }
 
     private double getCd0() {
-        return 0.055;
+        return CD0;
 //        return this.currentData.keySet().stream()
 //                .filter(this::isDataRun)
 //                .mapToDouble(this::getCd0)
@@ -486,7 +503,7 @@ public class ReductionProcessor {
     }
 
     private double getClAlpha() {
-        return 5;
+        return CL_ALPHA;
 //        final OptionalDouble cla = this.currentData.keySet().stream()
 //                .filter(this::isDataRun)
 //                .mapToDouble(this::getClAlpha)

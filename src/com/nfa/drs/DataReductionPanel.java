@@ -13,6 +13,7 @@ import com.jupiter.ganymede.property.Property.PropertyChangedArgs;
 import com.nfa.drs.constants.ModelConstants;
 import com.nfa.drs.data.DataContainerViewer;
 import com.nfa.drs.data.DataFormat;
+import com.nfa.drs.data.DataSet.DataValues;
 import com.nfa.drs.data.Datapoint;
 import com.nfa.drs.data.Run;
 import com.nfa.drs.data.StudentWindTunnelFormat;
@@ -37,6 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +47,6 @@ import java.util.stream.Collectors;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
-import javax.swing.SpinnerModel;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
 import javax.swing.filechooser.FileFilter;
@@ -80,6 +79,20 @@ public class DataReductionPanel extends javax.swing.JPanel {
         @Override
         public String getDescription() {
             return "Json Files (*.json)";
+        }
+
+    };
+
+    private static final FileFilter DAT_FILTER = new FileFilter() {
+
+        @Override
+        public boolean accept(File f) {
+            return f.isDirectory() || f.toString().endsWith(".dat");
+        }
+
+        @Override
+        public String getDescription() {
+            return "DAT Files (*.dat)";
         }
 
     };
@@ -160,6 +173,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.tareExportButton.addActionListener(this::exportTareSettingsAction);
         this.refreshReductionButton.addActionListener(this::refreshReductionButtonAction);
         this.viewDetailReductionButton.addActionListener(this::showResultsDetailButtonAction);
+        this.exportReducedButton.addActionListener(this::exportResultsButtonAction);
 
         this.thermalDataView.addComponentListener(new ComponentAdapter() {
             @Override
@@ -248,6 +262,22 @@ public class DataReductionPanel extends javax.swing.JPanel {
             }
         }
 
+        // Fill in blanks with thermal bias and tare settings
+        this.test.get().getRuns().stream()
+                .filter((Run run) ->
+                        !this.thermalBiasSettings.containsKey(run.getName())
+                )
+                .forEach((Run run) ->
+                        this.thermalBiasSettings.put(run.getName(), new ThermalBiasSettings(run.getPointCount()))
+                );
+        this.test.get().getRuns().stream()
+                .filter((Run run) ->
+                        !this.tareSettings.getAllSettings().containsKey(run.getName())
+                )
+                .forEach((Run run) ->
+                        this.tareSettings.setSettings(run.getName(), new TareSettingsEntry())
+                );
+
         // Calculate Initial Coefficients
         this.test.get().getRuns().stream()
                 .forEach((Run run) ->
@@ -256,9 +286,10 @@ public class DataReductionPanel extends javax.swing.JPanel {
                                 point.getData().coefficientsFromLoads(this.modelConstantsPanel.getModelConstants())
                         )
                 );
-        
+
         // Adding the Runs to Various Things
         this.tareRunComboBox.removeAllItems();
+        this.dataViewer.clear();
         this.test.get().getRuns().stream()
                 .forEach((Run run) -> {
                     run.getDatapoints().stream()
@@ -635,6 +666,72 @@ public class DataReductionPanel extends javax.swing.JPanel {
         frame.setDetailedResults(this.lastResults.getReductionSteps());
 
         frame.setVisible(true);
+    }
+
+    private void exportResultsButtonAction(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(DAT_FILTER);
+
+        Path defaultDir = Paths.get(this.getDefaults().getImportDirectory());
+        if (defaultDir != null && Files.exists(defaultDir)) {
+            chooser.setCurrentDirectory(defaultDir.toFile());
+        }
+        chooser.setSelectedFile(new File(chooser.getCurrentDirectory(), "output.dat"));
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            Path file = chooser.getSelectedFile().toPath();
+
+            if (chooser.getFileFilter().equals(DAT_FILTER) && !file.toString().endsWith(".dat")) {
+                file = Paths.get(file.toString() + ".dat");
+            }
+
+            this.exportResults(file);
+        }
+    }
+
+    private void exportResults(Path file) {
+        final List<String> lines = new ArrayList<>();
+        final List<DataValues> values = Collections.unmodifiableList(Arrays.asList(DataValues.values()));
+
+        StringBuilder decBuilder = new StringBuilder();
+        decBuilder.append("Run,Test Point,");
+        values.stream()
+                .forEach((DataValues value) -> {
+                    decBuilder.append(value.getDisplayName()).append(",");
+                });
+        String decLine = decBuilder.toString();
+
+        if (this.lastResults != null) {
+            this.lastResults.getReducedData().getRuns().stream()
+                    .forEach((Run run) -> {
+                        lines.add(run.getName());
+
+                        lines.add(decLine);
+                        run.getDatapoints().stream()
+                        .forEach((Datapoint point) -> {
+                            StringBuilder dataLine = new StringBuilder();
+
+                            dataLine.append(run.getName()).append(",");
+                            dataLine.append(point.getPointNumber()).append(",");
+
+                            values.stream()
+                            .forEach((DataValues value) -> {
+                                dataLine.append(point.getData().get(value)).append(",");
+                            });
+
+                            lines.add(dataLine.toString());
+                        });
+
+                        lines.add("");
+                    });
+        }
+
+        try {
+            Files.write(file, lines);
+        }
+        catch (IOException ex) {
+
+        }
     }
 
     // Designer  

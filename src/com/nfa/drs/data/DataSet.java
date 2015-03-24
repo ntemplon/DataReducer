@@ -140,12 +140,19 @@ public class DataSet {
     }
 
     public void coefficientsFromLoads(ModelConstants constants) {
-        this.data.put(DataValues.CL, this.data.get(DataValues.Lift) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
-        this.data.put(DataValues.CD, this.data.get(DataValues.Drag) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
-        this.data.put(DataValues.CPM, this.data.get(DataValues.PitchMoment) / (this.data.get(DataValues.DynamicPressure)
-                * constants.get(Constants.WingArea) * constants.get(Constants.Chord)));
+        if (this.data.get(DataValues.DynamicPressure) < 0.1) {
+            this.data.put(DataValues.CL, 0.0);
+            this.data.put(DataValues.CD, 0.0);
+            this.data.put(DataValues.CPM, 0.0);
+        }
+        else {
+            this.data.put(DataValues.CL, this.data.get(DataValues.Lift) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
+            this.data.put(DataValues.CD, this.data.get(DataValues.Drag) / (this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea)));
+            this.data.put(DataValues.CPM, this.data.get(DataValues.PitchMoment) / (this.data.get(DataValues.DynamicPressure)
+                    * constants.get(Constants.WingArea) * constants.get(Constants.Chord)));
+        }
     }
-    
+
     public void loadsFromCoefficients(ModelConstants constants) {
         this.data.put(DataValues.Lift, this.data.get(DataValues.CL) * this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea));
         this.data.put(DataValues.Drag, this.data.get(DataValues.CD) * this.data.get(DataValues.DynamicPressure) * constants.get(Constants.WingArea));

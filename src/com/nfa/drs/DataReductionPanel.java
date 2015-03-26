@@ -16,7 +16,8 @@ import com.nfa.drs.data.DataFormat;
 import com.nfa.drs.data.DataSet.DataValues;
 import com.nfa.drs.data.Datapoint;
 import com.nfa.drs.data.Run;
-import com.nfa.drs.data.StudentWindTunnelFormat;
+import com.nfa.drs.data.StudentWindTunnelFormatCsv;
+import com.nfa.drs.data.StudentWindTunnelFormatXls;
 import com.nfa.drs.data.Test;
 import com.nfa.drs.reduction.ReductionProcessor;
 import com.nfa.drs.reduction.ReductionProcessor.ReductionResults;
@@ -44,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
@@ -65,8 +68,11 @@ public class DataReductionPanel extends javax.swing.JPanel {
     private static final Map<String, DataFormat> formats = new HashMap<>();
 
     static {
-        DataFormat wsu3by4 = new StudentWindTunnelFormat();
+        DataFormat wsu3by4 = new StudentWindTunnelFormatCsv();
         formats.put(wsu3by4.getName(), wsu3by4);
+
+        DataFormat wsu3by4xls = new StudentWindTunnelFormatXls();
+        formats.put(wsu3by4xls.getName(), wsu3by4xls);
     }
 
     private static final FileFilter JSON_FILTER = new FileFilter() {
@@ -116,6 +122,18 @@ public class DataReductionPanel extends javax.swing.JPanel {
 
     public final void setDefaults(Defaults defaults) {
         this.defaults = defaults;
+        if (this.defaults != null) {
+            String importFormat = this.defaults.getImportFormat();
+            if (importFormat != null) {
+                ComboBoxModel model = this.formatCombo.getModel();
+                if (model instanceof DefaultComboBoxModel) {
+                    int index = ((DefaultComboBoxModel)model).getIndexOf(importFormat);
+                    if (index >= 0) {
+                        this.formatCombo.setSelectedIndex(index);
+                    }
+                }
+            }
+        }
     }
 
     private ThermalBiasSettings getCurrentThermalBiasSettings() {
@@ -174,6 +192,7 @@ public class DataReductionPanel extends javax.swing.JPanel {
         this.refreshReductionButton.addActionListener(this::refreshReductionButtonAction);
         this.viewDetailReductionButton.addActionListener(this::showResultsDetailButtonAction);
         this.exportReducedButton.addActionListener(this::exportResultsButtonAction);
+        this.formatCombo.addItemListener(this::importFormatItemEvent);
 
         this.thermalDataView.addComponentListener(new ComponentAdapter() {
             @Override
@@ -201,29 +220,17 @@ public class DataReductionPanel extends javax.swing.JPanel {
     // Private Methods
     private void importButtonActionPerformed(ActionEvent e) {
         JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        chooser.setFileFilter(new FileFilter() {
-
-            @Override
-            public boolean accept(File f) {
-                if (f == null || f.toString() == null) {
-                    return false;
-                }
-                return f.isDirectory() || f.toString().endsWith(".csv");
-            }
-
-            @Override
-            public String getDescription() {
-                return "CSV Files (*.csv)";
-            }
-
-        });
+        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         if (this.getDefaults() != null && this.getDefaults().getImportDirectory() != null) {
             chooser.setCurrentDirectory(new File(this.getDefaults().getImportDirectory()));
         }
 
         if (chooser.showDialog(this, "Import") == JFileChooser.APPROVE_OPTION) {
             Path dir = chooser.getSelectedFile().toPath();
+            if (!Files.isDirectory(dir)) {
+                dir = dir.getParent();
+            }
+            
             if (Files.isDirectory(dir)) {
                 this.importDataFrom(dir);
             }
@@ -318,18 +325,19 @@ public class DataReductionPanel extends javax.swing.JPanel {
         if (e == null || e.getStateChange() == ItemEvent.SELECTED) {
             if (this.test.get() != null) {
                 // Load Data
-                String runName = this.thermalBiasRunCombo.getSelectedItem().toString();
-                Run run = this.test.get().getRun(runName);
+                Object selected = this.thermalBiasRunCombo.getSelectedItem();
 
-                int maxRunNumber = 1;
+                if (selected != null) {
+                    final String runName = selected.toString();
+                    Run run = this.test.get().getRun(runName);
 
-                if (run != null) {
-                    this.thermalDataView.clear();
-                    run.getDatapoints().stream()
-                            .forEach((Datapoint point) ->
-                                    this.thermalDataView.addData(runName, point)
-                            );
-                    maxRunNumber = run.getPointCount();
+                    if (run != null) {
+                        this.thermalDataView.clear();
+                        run.getDatapoints().stream()
+                                .forEach((Datapoint point) ->
+                                        this.thermalDataView.addData(runName, point)
+                                );
+                    }
                 }
 
                 ThermalBiasSettings tbs = this.getCurrentThermalBiasSettings();
@@ -349,7 +357,6 @@ public class DataReductionPanel extends javax.swing.JPanel {
                 this.biasLinearityItemEvent(null);
 
                 this.revalidate();
-//                this.repaint();
             }
         }
     }
@@ -731,6 +738,12 @@ public class DataReductionPanel extends javax.swing.JPanel {
         }
         catch (IOException ex) {
 
+        }
+    }
+    
+    private void importFormatItemEvent(ItemEvent e) {
+        if (this.defaults != null) {
+            this.defaults.setImportFormat(e.getItem().toString());
         }
     }
 

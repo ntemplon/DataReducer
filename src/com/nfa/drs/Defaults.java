@@ -13,6 +13,7 @@ public class Defaults {
     
     // Fields
     private String importDirectory = null;
+    private String importFormat = null;
 
     
     // Properties
@@ -28,6 +29,20 @@ public class Defaults {
      */
     public void setImportDirectory(String importDirectory) {
         this.importDirectory = importDirectory;
+    }
+
+    /**
+     * @return the importFormat
+     */
+    public String getImportFormat() {
+        return importFormat;
+    }
+
+    /**
+     * @param importFormat the importFormat to set
+     */
+    public void setImportFormat(String importFormat) {
+        this.importFormat = importFormat;
     }
     
 }

@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  *
  * @author Nathan Templon
  */
-public class StudentWindTunnelFormat implements DataFormat {
+public class StudentWindTunnelFormatCsv implements DataFormat {
 
     // Enumerations
     public enum ParseStates {
@@ -77,7 +77,6 @@ public class StudentWindTunnelFormat implements DataFormat {
         return null;
     }
 
-    @Override
     public List<Run> fromBlock(List<String> text) {
         List<Run> runs = new ArrayList<>(20);
 
@@ -123,7 +122,6 @@ public class StudentWindTunnelFormat implements DataFormat {
         return runs;
     }
 
-    @Override
     public Datapoint fromLine(String line) {
         String[] parts = line.split(DELIMITER);
 

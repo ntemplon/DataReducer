@@ -16,6 +16,4 @@ public interface DataFormat {
     String getName();
     
     Test fromDirectory(Path directory);
-    List<Run> fromBlock(List<String> text);
-    Datapoint fromLine(String line);
 }

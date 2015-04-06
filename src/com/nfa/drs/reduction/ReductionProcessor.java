@@ -106,7 +106,7 @@ public class ReductionProcessor {
         this.applyFlowCorrection(new BuoyancyCorrection());
         this.performAxisTransfer();
         this.applyFlowCorrection(new BlockageCorrection(this.getCd0()));
-        this.applyFlowCorrection(new AngleOfAttackCorrection());
+//        this.applyFlowCorrection(new AngleOfAttackCorrection());
         this.applyFlowCorrection(new WakeDragCorrection());
         this.applyFlowCorrection(new StreamwiseCurvatureCorrection(this.getClAlpha()));
 
